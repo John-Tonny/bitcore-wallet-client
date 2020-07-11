@@ -1637,16 +1637,8 @@ var API = (function (_super) {
         };
         var checkKey = function (key, cb) {
             var opts = [
-                ['btc', 'livenet'],
-                ['bch', 'livenet'],
                 ['vcl', 'livenet'],
-                ['eth', 'livenet'],
-                ['eth', 'testnet'],
-                ['xrp', 'livenet'],
-                ['xrp', 'testnet'],
                 ['vcl', 'livenet', true],
-                ['btc', 'livenet', true],
-                ['bch', 'livenet', true]
             ];
             if (key.use44forMultisig) {
                 opts = opts.filter(function (x) {
@@ -1655,7 +1647,7 @@ var API = (function (_super) {
             }
             if (key.use0forBCH) {
                 opts = opts.filter(function (x) {
-                    return x[0] == 'bch';
+                    return x[0] == 'vcl';
                 });
             }
             if (!key.nonCompliantDerivation) {
@@ -1667,7 +1659,7 @@ var API = (function (_super) {
             }
             else {
                 opts = opts.filter(function (x) {
-                    return x[0] == 'btc';
+                    return x[0] == 'vcl';
                 });
             }
             var clients = [];

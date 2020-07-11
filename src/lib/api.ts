@@ -2402,16 +2402,8 @@ export class API extends EventEmitter {
     var checkKey = (key, cb) => {
       let opts = [
         // coin, network,  multisig
-        ['btc', 'livenet'],
-        ['bch', 'livenet'],
         ['vcl', 'livenet'],
-        ['eth', 'livenet'],
-        ['eth', 'testnet'],
-        ['xrp', 'livenet'],
-        ['xrp', 'testnet'],
         ['vcl', 'livenet', true],
-        ['btc', 'livenet', true],
-        ['bch', 'livenet', true]
       ];
       if (key.use44forMultisig) {
         //  testing old multi sig
@@ -2423,7 +2415,7 @@ export class API extends EventEmitter {
       if (key.use0forBCH) {
         //  testing BCH, old coin=0 wallets
         opts = opts.filter(x => {
-          return x[0] == 'bch';
+          return x[0] == 'vcl';
         });
       }
 
@@ -2437,7 +2429,7 @@ export class API extends EventEmitter {
       } else {
         //  leave only BTC, and no testnet
         opts = opts.filter(x => {
-          return x[0] == 'btc';
+          return x[0] == 'vcl';
         });
       }
 
