@@ -1638,7 +1638,7 @@ var API = (function (_super) {
         var checkKey = function (key, cb) {
             var opts = [
                 ['vcl', 'livenet'],
-                ['vcl', 'livenet', true],
+                ['vcl', 'livenet', true]
             ];
             if (key.use44forMultisig) {
                 opts = opts.filter(function (x) {
@@ -1821,6 +1821,60 @@ var API = (function (_super) {
         var url = '/v1/masternode/collateral/' + qs;
         this.request.get(url, cb);
     };
+    API.prototype.removeMasternodes = function (opts, cb) {
+        if (!cb) {
+            cb = opts;
+            opts = {};
+            log.warn('DEPRECATED WARN: removeMasternodes should receive 2 parameters.');
+        }
+        opts = opts || {};
+        $.checkState(this.credentials && this.credentials.isComplete());
+        var args = [];
+        if (opts.coin) {
+            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
+                return cb(new Error('Invalid coin'));
+            if (opts.coin != 'vcl') {
+                return cb(new Error('coin is not supported'));
+            }
+            args.push('coin=' + opts.coin);
+        }
+        if (opts.txid) {
+            args.push('txid=' + opts.txid);
+        }
+        var qs = '';
+        if (args.length > 0) {
+            qs = '?' + args.join('&');
+        }
+        var url = '/v1/masternode/' + qs;
+        this.request.delete(url, cb);
+    };
+    API.prototype.getMasternodes = function (opts, cb) {
+        if (!cb) {
+            cb = opts;
+            opts = {};
+            log.warn('DEPRECATED WARN: getMasternodes should receive 2 parameters.');
+        }
+        opts = opts || {};
+        $.checkState(this.credentials && this.credentials.isComplete());
+        var args = [];
+        if (opts.coin) {
+            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
+                return cb(new Error('Invalid coin'));
+            if (opts.coin != 'vcl') {
+                return cb(new Error('coin is not supported'));
+            }
+            args.push('coin=' + opts.coin);
+        }
+        if (opts.txid) {
+            args.push('txid=' + opts.txid);
+        }
+        var qs = '';
+        if (args.length > 0) {
+            qs = '?' + args.join('&');
+        }
+        var url = '/v1/masternode/' + qs;
+        this.request.get(url, cb);
+    };
     API.prototype.getMasternodeStatus = function (opts, cb) {
         if (!cb) {
             cb = opts;
@@ -1851,7 +1905,7 @@ var API = (function (_super) {
         if (args.length > 0) {
             qs = '?' + args.join('&');
         }
-        var url = '/v1/masternode/' + qs;
+        var url = '/v1/masternode/status/' + qs;
         this.request.get(url, cb);
     };
     API.prototype.broadcastMasternode = function (opts, cb) {
@@ -1876,6 +1930,9 @@ var API = (function (_super) {
         if (!opts.rawTx)
             return cb(new Error('Not rawTx'));
         args.rawTx = opts.rawTx;
+        if (!opts.masternodeKey)
+            return cb(new Error('Not masternode private key'));
+        args.masternodeKey = opts.masternodeKey;
         var url = '/v1/masternode/broadcast/';
         this.request.post(url, args, function (err, body) {
             if (err)

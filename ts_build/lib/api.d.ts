@@ -137,6 +137,8 @@ export declare class API extends EventEmitter {
     simplexPaymentRequest(data: any): Promise<any>;
     simplexGetEvents(data: any): Promise<any>;
     getMasternodeCollateral(opts: any, cb: any): any;
+    removeMasternodes(opts: any, cb: any): any;
+    getMasternodes(opts: any, cb: any): any;
     getMasternodeStatus(opts: any, cb: any): any;
     broadcastMasternode(opts: any, cb: any): any;
     getMasternodePing(opts: any, cb: any): any;
