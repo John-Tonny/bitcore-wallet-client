@@ -1,29 +1,49 @@
 'use strict';
 import * as CWC from 'crypto-wallet-core';
 
-export const Constants = {
+module.exports = {
+  COINS: {
+    VCL: 'vcl'
+  },
+
+  ERC20: {
+    USDC: 'usdc',
+    PAX: 'pax',
+    GUSD: 'gusd',
+    BUSD: 'busd'
+  },
+
+  UTXO_COINS: {
+    VCL: 'vcl'
+  },
+
+  NETWORKS: {
+    LIVENET: 'livenet',
+    TESTNET: 'testnet'
+  },
+
+  ADDRESS_FORMATS: ['copay', 'cashaddr', 'legacy'],
+
   SCRIPT_TYPES: {
     P2SH: 'P2SH',
+    P2WSH: 'P2WSH',
     P2PKH: 'P2PKH',
-    P2WPKH: 'P2WPKH',
-    P2WSH: 'P2WSH'
+    P2WPKH: 'P2WPKH'
   },
-  // not used, since Credentials 2.0
   DERIVATION_STRATEGIES: {
     BIP44: 'BIP44',
-    BIP45: 'BIP45',
-    BIP48: 'BIP48'
+    BIP45: 'BIP45'
   },
+
   PATHS: {
-    SINGLE_ADDRESS: 'm/0/0',
+    SINGLE_ADDRESS: "m/0'/0",
+    REQUEST_ELECTRUM_KEY: "m/0'",
     REQUEST_KEY: "m/1'/0",
-    //  TXPROPOSAL_KEY: "m/1'/1",
+    TXPROPOSAL_KEY: "m/1'/1",
     REQUEST_KEY_AUTH: 'm/2' // relative to BASE
   },
+
   BIP45_SHARED_INDEX: 0x80000000 - 1,
-  COINS: ['btc', 'bch', 'eth', 'vcl', 'xrp', 'usdc', 'pax', 'gusd', 'busd'],
-  ERC20: ['usdc', 'pax', 'gusd', 'busd'],
-  UTXO_COINS: ['btc', 'bch', 'vcl'],
-  TOKEN_OPTS: CWC.Constants.TOKEN_OPTS,
-  UNITS: CWC.Constants.UNITS
+
+  TOKEN_OPTS: CWC.Constants.TOKEN_OPTS
 };
