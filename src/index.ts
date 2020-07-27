@@ -1,9 +1,11 @@
-import { ExpressApp } from './lib/expressapp';
-import { Storage } from './lib/storage';
+/**
+ * The official client library for bitcore-wallet-service.
+ * @module Client
+ */
 
-const BWS = {
-  ExpressApp,
-  Storage
-};
-
-module.exports = BWS;
+// /**
+// * Client API.
+// * @alias module:Client.API
+// */
+import { API } from './lib/api';
+export default API;

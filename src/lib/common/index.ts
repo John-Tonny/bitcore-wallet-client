@@ -1,5 +1,3 @@
-module.exports = {
-  Constants: require('./constants'),
-  Defaults: require('./defaults'),
-  Utils: require('./utils')
-};
+export { Constants } from './constants';
+export { Defaults } from './defaults';
+export { Utils } from './utils';
