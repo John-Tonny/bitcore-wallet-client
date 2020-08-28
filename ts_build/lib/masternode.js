@@ -61,8 +61,8 @@ var Masternode = (function () {
             sresult += this.get_varintNum(sig.length / 2);
             sresult += pingSig;
             sresult += '01';
-            sresult += this.get_int32(1000000);
-            sresult += this.get_int32(1010191);
+            sresult += this.get_int32(CLIENT_SENTINEL_VERSION);
+            sresult += this.get_int32(CLIENT_MASTERNODE_VERSION);
             var retrys = 0;
             sresult += this.get_int32(retrys);
             return sresult;
