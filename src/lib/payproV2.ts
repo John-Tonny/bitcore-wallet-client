@@ -6,19 +6,19 @@ const query = require('querystring');
 const url = require('url');
 const Errors = require('./errors');
 const dfltTrustedKeys = require('../util/JsonPaymentProtocolKeys.js');
-const Bitcore = require('crypto-wallet-core').VircleLib;
+const Bitcore = require('crypto-wallet-core').BitcoreLib;
 const _ = require('lodash');
 const sha256 = Bitcore.crypto.Hash.sha256;
 const BN = Bitcore.crypto.BN;
 var Bitcore_ = {
-  vcl: require('crypto-wallet-core').VircleLib
+  btc: Bitcore,
+  bch: require('crypto-wallet-core').BitcoreLibCash
 };
 var MAX_FEE_PER_KB = {
   btc: 10000 * 1000, // 10k sat/b
   bch: 10000 * 1000, // 10k sat/b
-  eth: 50000000000, // 50 Gwei
-  vcl: 10000 * 1000, // 10k sat/b
-  xrp: 50000000000
+  eth: 1000000000000, // 1000 Gwei
+  xrp: 1000000000000
 };
 
 // PayPro Network Map
@@ -171,7 +171,7 @@ export class PayProV2 {
    * @param unsafeBypassValidation
    * @return {Promise<{payProDetails: Object}>}
    */
-  static async selectPaymentOption({ paymentUrl, chain, currency, unsafeBypassValidation = false }) {
+  static async selectPaymentOption({ paymentUrl, chain, currency, payload, unsafeBypassValidation = false }) {
     let { rawBody, headers } = await PayProV2._asyncRequest({
       url: paymentUrl,
       method: 'post',
@@ -183,7 +183,8 @@ export class PayProV2 {
       },
       args: JSON.stringify({
         chain,
-        currency
+        currency,
+        payload
       })
     });
 

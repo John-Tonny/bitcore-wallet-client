@@ -2,9 +2,10 @@ import * as _ from 'lodash';
 import { Constants, Utils } from './common';
 var $ = require('preconditions').singleton();
 
-import { VircleLib } from 'crypto-wallet-core';
+import { BitcoreLib, BitcoreLibCash } from 'crypto-wallet-core';
 
-var Bitcore = VircleLib;
+var Bitcore = BitcoreLib;
+var BCHAddress = BitcoreLibCash.Address;
 
 var log = require('./log');
 
@@ -103,9 +104,7 @@ export class Verifier {
       var o2 = args.outputs[i];
       if (!strEqual(o1.toAddress, o2.toAddress)) return false;
       if (!strEqual(o1.script, o2.script)) return false;
-      if (!args.sendMax) {
-        if (o1.amount != o2.amount) return false;
-      }
+      if (o1.amount != o2.amount) return false;
       var decryptedMessage = null;
       try {
         decryptedMessage = Utils.decryptMessage(o2.message, encryptingKey);
@@ -140,7 +139,7 @@ export class Verifier {
     $.checkState(credentials.isComplete());
 
     var creatorKeys = _.find(credentials.publicKeyRing, item => {
-      if (Utils.xPubToCopayerId(txp.coin || 'vcl', item.xPubKey) === txp.creatorId) return true;
+      if (Utils.xPubToCopayerId(txp.coin || 'btc', item.xPubKey) === txp.creatorId) return true;
     });
 
     if (!creatorKeys) return false;
@@ -161,8 +160,7 @@ export class Verifier {
     var hash;
     if (parseInt(txp.version) >= 3) {
       var t = Utils.buildTx(txp);
-      // john
-      hash = t.uncheckedSerialize1();
+      hash = t.uncheckedSerialize();
     } else {
       throw new Error('Transaction proposal not supported');
     }
@@ -191,9 +189,14 @@ export class Verifier {
 
     if (amount != _.sumBy(payproOpts.instructions, 'amount')) return false;
 
-    if ((txp.coin == 'btc' || txp.coin == 'vcl') && toAddress != payproOpts.instructions[0].toAddress) return false;
+    if (txp.coin == 'btc' && toAddress != payproOpts.instructions[0].toAddress) return false;
 
     // Workaround for cashaddr/legacy address problems...
+    if (
+      txp.coin == 'bch' &&
+      new BCHAddress(toAddress).toString() != new BCHAddress(payproOpts.instructions[0].toAddress).toString()
+    )
+      return false;
 
     // this generates problems...
     //  if (feeRate && payproOpts.requiredFeeRate &&

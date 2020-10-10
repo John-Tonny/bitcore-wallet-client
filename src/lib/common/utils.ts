@@ -1,6 +1,6 @@
 'use strict';
 
-import { Deriver, Transactions, VircleLib } from 'crypto-wallet-core';
+import { BitcoreLib, BitcoreLibCash, Deriver, Transactions } from 'crypto-wallet-core';
 
 import * as _ from 'lodash';
 import { Constants } from './constants';
@@ -10,10 +10,12 @@ const $ = require('preconditions').singleton();
 const sjcl = require('sjcl');
 const Stringify = require('json-stable-stringify');
 
-// john
-const Bitcore = VircleLib;
+const Bitcore = BitcoreLib;
 const Bitcore_ = {
-  vcl: VircleLib
+  btc: Bitcore,
+  bch: BitcoreLibCash,
+  eth: Bitcore,
+  xrp: Bitcore
 };
 const PrivateKey = Bitcore.PrivateKey;
 const PublicKey = Bitcore.PublicKey;
@@ -99,7 +101,6 @@ export class Utils {
     var priv = new PrivateKey(privKey);
     const flattenedMessage = _.isArray(message) ? _.join(message) : message;
     var hash = this.hashMessage(flattenedMessage);
-
     return crypto.ECDSA.sign(hash, priv, 'little').toString();
   }
 
@@ -156,7 +157,7 @@ export class Utils {
   static deriveAddress(scriptType, publicKeyRing, path, m, network, coin) {
     $.checkArgument(_.includes(_.values(Constants.SCRIPT_TYPES), scriptType));
 
-    coin = coin || 'vcl';
+    coin = coin || 'btc';
     const chain = this.getChain(coin).toLowerCase();
     var bitcore = Bitcore_[chain];
     var publicKeys = _.map(publicKeyRing, item => {
@@ -206,7 +207,7 @@ export class Utils {
     // now it is effective for all coins.
 
     const chain = this.getChain(coin).toLowerCase();
-    var str = chain == 'btc' || chain == 'vcl' ? xpub : chain + xpub;
+    var str = chain == 'btc' ? xpub : chain + xpub;
 
     var hash = sjcl.hash.sha256.hash(str);
     return sjcl.codec.hex.fromBits(hash);
@@ -268,7 +269,7 @@ export class Utils {
   }
 
   static buildTx(txp) {
-    var coin = txp.coin || 'vcl';
+    var coin = txp.coin || 'btc';
 
     if (Constants.UTXO_COINS.includes(coin)) {
       var bitcore = Bitcore_[coin];
@@ -315,9 +316,7 @@ export class Utils {
       }
 
       t.fee(txp.fee);
-      if (txp.changeAddress) {
-        t.change(txp.changeAddress.address);
-      }
+      t.change(txp.changeAddress.address);
 
       // Shuffle outputs for improved privacy
       if (t.outputs.length > 1) {
@@ -353,7 +352,7 @@ export class Utils {
 
       return t;
     } else {
-      const { data, destinationTag, outputs, payProUrl, tokenAddress } = txp;
+      const { data, destinationTag, outputs, payProUrl, tokenAddress, multisigContractAddress } = txp;
       const recipients = outputs.map(output => {
         return {
           amount: output.amount,
@@ -368,7 +367,8 @@ export class Utils {
       }
       const unsignedTxs = [];
       const isERC20 = tokenAddress && !payProUrl;
-      const chain = isERC20 ? 'ERC20' : this.getChain(coin);
+      const isETHMULTISIG = multisigContractAddress && !payProUrl;
+      const chain = isETHMULTISIG ? 'ETHMULTISIG' : isERC20 ? 'ERC20' : this.getChain(coin);
       for (let index = 0; index < recipients.length; index++) {
         const rawTx = Transactions.create({
           ...txp,
@@ -381,15 +381,6 @@ export class Utils {
         unsignedTxs.push(rawTx);
       }
       return { uncheckedSerialize: () => unsignedTxs };
-    }
-  }
-
-  static isPrivateKey(privKey) {
-    try {
-      var privkey = new PrivateKey(privKey);
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 }

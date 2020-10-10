@@ -7,7 +7,6 @@ import sjcl from 'sjcl';
 import { Constants, Utils } from './common';
 import { Credentials } from './credentials';
 import { Key } from './key';
-import { Masternode } from './masternode';
 import { PayPro } from './paypro';
 import { PayProV2 } from './payproV2';
 import { Request } from './request';
@@ -17,9 +16,12 @@ var $ = require('preconditions').singleton();
 var util = require('util');
 var async = require('async');
 var events = require('events');
-var Bitcore = CWC.VircleLib;
+var Bitcore = CWC.BitcoreLib;
 var Bitcore_ = {
-  vcl: CWC.VircleLib
+  btc: CWC.BitcoreLib,
+  bch: CWC.BitcoreLibCash,
+  eth: CWC.BitcoreLib,
+  xrp: CWC.BitcoreLib
 };
 var Mnemonic = require('bitcore-mnemonic');
 var url = require('url');
@@ -60,10 +62,10 @@ export class API extends EventEmitter {
   static Utils = Utils;
   static sjcl = sjcl;
   static errors = Errors;
-  static Masternode = Masternode;
 
   // Expose bitcore
-  static Vircle = CWC.VircleLib;
+  static Bitcore = CWC.BitcoreLib;
+  static BitcoreCash = CWC.BitcoreLibCash;
 
   constructor(opts?) {
     super();
@@ -403,7 +405,7 @@ export class API extends EventEmitter {
   getBalanceFromPrivateKey(privateKey, coin, cb) {
     if (_.isFunction(coin)) {
       cb = coin;
-      coin = 'vcl';
+      coin = 'btc';
     }
     var B = Bitcore_[coin];
 
@@ -424,7 +426,7 @@ export class API extends EventEmitter {
   buildTxFromPrivateKey(privateKey, destinationAddress, opts, cb) {
     opts = opts || {};
 
-    var coin = opts.coin || 'vcl';
+    var coin = opts.coin || 'btc';
     var signingMethod = opts.signingMethod || 'ecdsa';
 
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
@@ -570,7 +572,7 @@ export class API extends EventEmitter {
 
       var walletPrivKey = Bitcore.PrivateKey.fromString(secretSplit[1]);
       var networkChar = secretSplit[2];
-      var coin = secretSplit[3] || 'vcl';
+      var coin = secretSplit[3] || 'btc';
 
       return {
         walletId,
@@ -732,7 +734,7 @@ export class API extends EventEmitter {
   // /**
   // * Get current fee levels for the specified network
   // *
-  // * @param {string} coin - 'vcl' (default) or 'btc' or 'bch'
+  // * @param {string} coin - 'btc' (default) or 'bch'
   // * @param {string} network - 'livenet' (default) or 'testnet'
   // * @param {Callback} cb
   // * @returns {Callback} cb - Returns error or an object with status information
@@ -744,7 +746,7 @@ export class API extends EventEmitter {
     const chain = Utils.getChain(coin).toLowerCase();
 
     this.request.get(
-      '/v2/feelevels/?coin=' + (chain || 'vcl') + '&network=' + (network || 'livenet'),
+      '/v2/feelevels/?coin=' + (chain || 'btc') + '&network=' + (network || 'livenet'),
       (err, result) => {
         if (err) return cb(err);
         return cb(err, result);
@@ -777,7 +779,7 @@ export class API extends EventEmitter {
   // * @param {Number} m
   // * @param {Number} n
   // * @param {object} opts (optional: advanced options)
-  // * @param {string} opts.coin[='vcl'] - The coin for this wallet (vcl, btc, bch).
+  // * @param {string} opts.coin[='btc'] - The coin for this wallet (btc, bch).
   // * @param {string} opts.network[='livenet']
   // * @param {string} opts.singleAddress[=false] - The wallet will only ever have one address.
   // * @param {String} opts.walletPrivKey - set a walletPrivKey (instead of random)
@@ -792,7 +794,7 @@ export class API extends EventEmitter {
     if (opts) $.shouldBeObject(opts);
     opts = opts || {};
 
-    var coin = opts.coin || 'vcl';
+    var coin = opts.coin || 'btc';
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
 
     var network = opts.network || 'livenet';
@@ -858,7 +860,7 @@ export class API extends EventEmitter {
   // * @param {String} secret
   // * @param {String} copayerName
   // * @param {Object} opts
-  // * @param {string} opts.coin[='vcl'] - The expected coin for this wallet (vcl, btc, bch).
+  // * @param {string} opts.coin[='btc'] - The expected coin for this wallet (btc, bch).
   // * @param {Boolean} opts.dryRun[=false] - Simulate wallet join
   // * @param {Callback} cb
   // * @returns {Callback} cb - Returns the wallet
@@ -874,7 +876,7 @@ export class API extends EventEmitter {
 
     opts = opts || {};
 
-    var coin = opts.coin || 'vcl';
+    var coin = opts.coin || 'btc';
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
 
     try {
@@ -1087,6 +1089,7 @@ export class API extends EventEmitter {
   // * @param {Boolean} opts.twoStep[=false] - Optional: use 2-step balance computation for improved performance
   // * @param {Boolean} opts.includeExtendedInfo (optional: query extended status)
   // * @param {String} opts.tokenAddress (optional: ERC20 Token Contract Address)
+  // * @param {String} opts.multisigContractAddress (optional: MULTISIG ETH Contract Address)
   // * @returns {Callback} cb - Returns error or an object with status information
   // */
   getStatus(opts, cb) {
@@ -1107,6 +1110,11 @@ export class API extends EventEmitter {
 
     if (opts.tokenAddress) {
       qs.push('tokenAddress=' + opts.tokenAddress);
+    }
+
+    if (opts.multisigContractAddress) {
+      qs.push('multisigContractAddress=' + opts.multisigContractAddress);
+      qs.push('network=' + this.credentials.network);
     }
 
     this.request.get('/v3/wallets/?' + qs.join('&'), (err, result) => {
@@ -1168,7 +1176,7 @@ export class API extends EventEmitter {
     PayPro.get(
       {
         url: opts.payProUrl,
-        coin: this.credentials.coin || 'vcl',
+        coin: this.credentials.coin || 'btc',
         network: this.credentials.network || 'livenet',
 
         // for testing
@@ -1269,7 +1277,7 @@ export class API extends EventEmitter {
     $.checkArgument(opts);
 
     // BCH schnorr deployment
-    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+    if (!opts.signingMethod && this.credentials.coin == 'bch') {
       opts.signingMethod = 'schnorr';
     }
 
@@ -1303,8 +1311,7 @@ export class API extends EventEmitter {
     $.checkState(parseInt(opts.txp.version) >= 3);
 
     var t = Utils.buildTx(opts.txp);
-    // john
-    var hash = t.uncheckedSerialize1();
+    var hash = t.uncheckedSerialize();
     var args = {
       proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey)
     };
@@ -1391,6 +1398,7 @@ export class API extends EventEmitter {
   // *
   // * @param {String} opts.coin - Optional: defaults to current wallet coin
   // * @param {String} opts.tokenAddress - Optional: ERC20 token contract address
+  // * @param {String} opts.multisigContractAddress optional: MULTISIG ETH Contract Address
   // * @param {Callback} cb
   // */
   getBalance(opts, cb) {
@@ -1411,6 +1419,9 @@ export class API extends EventEmitter {
     }
     if (opts.tokenAddress) {
       args.push('tokenAddress=' + opts.tokenAddress);
+    }
+    if (opts.multisigContractAddress) {
+      args.push('multisigContractAddress=' + opts.multisigContractAddress);
     }
     var qs = '';
     if (args.length > 0) {
@@ -1485,7 +1496,7 @@ export class API extends EventEmitter {
     PayPro.get(
       {
         url: txp.payProUrl,
-        coin: txp.coin || 'vcl',
+        coin: txp.coin || 'btc',
         network: txp.network || 'livenet',
 
         // for testing
@@ -1503,11 +1514,15 @@ export class API extends EventEmitter {
 
     const chain = Utils.getChain(txp.coin);
     const currency = txp.coin.toUpperCase();
+    const payload = {
+      address: txp.from
+    };
 
     return PayProV2.selectPaymentOption({
       paymentUrl: txp.payProUrl,
       chain,
-      currency
+      currency,
+      payload
     });
   }
 
@@ -1536,11 +1551,7 @@ export class API extends EventEmitter {
 
         if (!isLegit) return cb(new Errors.SERVER_COMPROMISED());
 
-        let defaultBase = '/v1/txproposals/';
-        if (txp.coin === 'bch' && txp.network === 'testnet') {
-          defaultBase = '/v2/txproposals/';
-        }
-
+        let defaultBase = '/v2/txproposals/';
         base = base || defaultBase;
         //        base = base || '/v2/txproposals/'; // DISABLED 2020-04-07
 
@@ -1559,6 +1570,119 @@ export class API extends EventEmitter {
         return cb(err);
       });
   }
+
+  /**
+   * Create advertisement for bitpay app - (limited to marketing staff)
+   * @param opts - options
+   */
+  createAdvertisement(opts, cb) {
+    // TODO add check for preconditions of title, imgUrl, linkUrl
+
+    var url = '/v1/advertisements/';
+    let args = opts;
+
+    this.request.post(url, args, (err, createdAd) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, createdAd);
+    });
+  }
+
+  /**
+   * Get advertisements for bitpay app - (limited to marketing staff)
+   * @param opts - options
+   * @param opts.testing - if set, fetches testing advertisements
+   */
+  getAdvertisements(opts, cb) {
+    var url = '/v1/advertisements/';
+    if (opts.testing === true) {
+      url = '/v1/advertisements/' + '?testing=true';
+    }
+
+    this.request.get(url, (err, ads) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, ads);
+    });
+  }
+
+  /**
+   * Get advertisements for bitpay app, for specified country - (limited to marketing staff)
+   * @param opts - options
+   * @param opts.country - if set, fetches ads by Country
+   */
+  getAdvertisementsByCountry(opts, cb) {
+    var url = '/v1/advertisements/country/' + opts.country;
+
+    this.request.get(url, (err, ads) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, ads);
+    });
+  }
+
+  /**
+   * Get Advertisement
+   * @param opts - options
+   */
+  getAdvertisement(opts, cb) {
+    var url = '/v1/advertisements/' + opts.adId; // + adId or adTitle;
+    this.request.get(url, (err, body) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, body);
+    });
+  }
+
+  /**
+   * Activate Advertisement
+   * @param opts - options
+   */
+  activateAdvertisement(opts, cb) {
+    var url = '/v1/advertisements/' + opts.adId + '/activate'; // + adId or adTitle;
+    let args = opts;
+    this.request.post(url, args, (err, body) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, body);
+    });
+  }
+
+  /**
+   * Deactivate Advertisement
+   * @param opts - options
+   */
+  deactivateAdvertisement(opts, cb) {
+    var url = '/v1/advertisements/' + opts.adId + '/deactivate'; // + adId or adTitle;
+    let args = opts;
+    this.request.post(url, args, (err, body) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, body);
+    });
+  }
+
+  /**
+   * Delete Advertisement
+   * @param opts - options
+   */
+  deleteAdvertisement(opts, cb) {
+    var url = '/v1/advertisements/' + opts.adId; // + adId or adTitle;
+    this.request.delete(url, (err, body) => {
+      if (err) {
+        return cb(err);
+      }
+      return cb(null, body);
+    });
+  }
+
+  /*
 
   // /**
   // * Sign transaction proposal from AirGapped
@@ -1611,7 +1735,7 @@ export class API extends EventEmitter {
   // * @param {Number} m
   // * @param {Number} n
   // * @param {Object} opts
-  // * @param {String} opts.coin (default 'vcl')
+  // * @param {String} opts.coin (default 'btc')
   // * @param {String} opts.passphrase
   // * @param {Number} opts.account - default 0
   // * @param {String} opts.derivationStrategy - default 'BIP44'
@@ -1620,7 +1744,7 @@ export class API extends EventEmitter {
   static signTxProposalFromAirGapped(key, txp, unencryptedPkr, m, n, opts, cb) {
     opts = opts || {};
 
-    var coin = opts.coin || 'vcl';
+    var coin = opts.coin || 'btc';
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
 
     var publicKeyRing = JSON.parse(unencryptedPkr);
@@ -1752,8 +1876,7 @@ export class API extends EventEmitter {
 
           let i = 0;
 
-          let isBtcSegwit =
-            (txp.coin == 'btc' || txp.coin == 'vcl') && (txp.addressType == 'P2WSH' || txp.addressType == 'P2WPKH');
+          let isBtcSegwit = txp.coin == 'btc' && (txp.addressType == 'P2WSH' || txp.addressType == 'P2WPKH');
           for (const unsigned of unserializedTxs) {
             let size = serializedTxs[i++].length / 2;
             if (isBtcSegwit) {
@@ -1833,6 +1956,7 @@ export class API extends EventEmitter {
   // * @param {Number} opts.skip (defaults to 0)
   // * @param {Number} opts.limit
   // * @param {String} opts.tokenAddress
+  // * @param {String} opts.multisigContractAddress (optional: MULTISIG ETH Contract Address)
   // * @param {Boolean} opts.includeExtendedInfo
   // * @param {Callback} cb
   // * @return {Callback} cb - Return error or array of transactions
@@ -1845,6 +1969,7 @@ export class API extends EventEmitter {
       if (opts.skip) args.push('skip=' + opts.skip);
       if (opts.limit) args.push('limit=' + opts.limit);
       if (opts.tokenAddress) args.push('tokenAddress=' + opts.tokenAddress);
+      if (opts.multisigContractAddress) args.push('multisigContractAddress=' + opts.multisigContractAddress);
       if (opts.includeExtendedInfo) args.push('includeExtendedInfo=1');
     }
     var qs = '';
@@ -2002,7 +2127,7 @@ export class API extends EventEmitter {
   // * @param {Object} opts
   // * @param {string} opts.code - Currency ISO code.
   // * @param {Date} [opts.ts] - A timestamp to base the rate on (default Date.now()).
-  // * @param {String} [opts.coin] - Coin (detault: 'vcl')
+  // * @param {String} [opts.coin] - Coin (detault: 'btc')
   // * @returns {Object} rates - The exchange rate.
   // */
   getFiatRate(opts, cb) {
@@ -2117,6 +2242,35 @@ export class API extends EventEmitter {
   }
 
   // /**
+  // * Returns contract instantiation info. (All contract addresses instantiated by that sender with the current transaction hash and block number)
+  // * @param {string} opts.sender - sender eth wallet address
+  // * @param {string} opts.txId - instantiation transaction id
+  // * @return {Callback} cb - Return error (if exists) instantiation info
+  // */
+  getMultisigContractInstantiationInfo(opts, cb) {
+    var url = '/v1/ethmultisig/';
+    opts.network = this.credentials.network;
+    this.request.post(url, opts, (err, contractInstantiationInfo) => {
+      if (err) return cb(err);
+      return cb(null, contractInstantiationInfo);
+    });
+  }
+
+  // /**
+  // * Returns contract info. (owners addresses and required number of confirmations)
+  // * @param {string} opts.multisigContractAddress - multisig contract address
+  // * @return {Callback} cb - Return error (if exists) instantiation info
+  // */
+  getMultisigContractInfo(opts, cb) {
+    var url = '/v1/ethmultisig/info';
+    opts.network = this.credentials.network;
+    this.request.post(url, opts, (err, contractInfo) => {
+      if (err) return cb(err);
+      return cb(null, contractInfo);
+    });
+  }
+
+  // /**
   // * Get wallet status based on a string identifier (one of: walletId, address, txid)
   // *
   // * @param {string} opts.identifier - The identifier
@@ -2216,7 +2370,7 @@ export class API extends EventEmitter {
 
       // if old credentials had use145forBCH...use it.
       // else,if the wallet is bch, set it to true.
-      k.use0forBCH = x.use145forBCH ? false : x.coin == 'bch' || x.coin == 'vcl' ? true : false;
+      k.use0forBCH = x.use145forBCH ? false : x.coin == 'bch' ? true : false;
 
       k.BIP45 = x.derivationStrategy == 'BIP45';
     } else {
@@ -2243,7 +2397,7 @@ export class API extends EventEmitter {
     if (c.externalSource) {
       throw new Error('External Wallets are no longer supported');
     }
-    c.coin = c.coin || 'vcl';
+    c.coin = c.coin || 'btc';
     c.addressType = c.addressType || Constants.SCRIPT_TYPES.P2SH;
     c.account = c.account || 0;
     c.rootPath = c.getRootPath();
@@ -2365,10 +2519,7 @@ export class API extends EventEmitter {
 
         // Exists
         if (!err) {
-          if (
-            (opts.coin == 'btc' || opts.coin == 'vcl') &&
-            (status.wallet.addressType == 'P2WPKH' || status.wallet.addressType == 'P2WSH')
-          ) {
+          if (opts.coin == 'btc' && (status.wallet.addressType == 'P2WPKH' || status.wallet.addressType == 'P2WSH')) {
             client.credentials.addressType =
               status.wallet.n == 1 ? Constants.SCRIPT_TYPES.P2WPKH : Constants.SCRIPT_TYPES.P2WSH;
           }
@@ -2389,6 +2540,39 @@ export class API extends EventEmitter {
               clients.push(tokenClient);
             });
           }
+          // Eth wallet with mulsig wallets?
+          const multisigEthInfo = status.preferences.multisigEthInfo;
+          if (!_.isEmpty(multisigEthInfo)) {
+            _.each(multisigEthInfo, info => {
+              log.info(
+                `Importing multisig wallet. Address: ${info.multisigContractAddress} - m: ${info.m} - n: ${info.n}`
+              );
+              const multisigEthCredentials = client.credentials.getMultisigEthCredentials({
+                walletName: info.walletName,
+                multisigContractAddress: info.multisigContractAddress,
+                n: info.n,
+                m: info.m
+              });
+              let multisigEthClient = _.cloneDeep(client);
+              multisigEthClient.credentials = multisigEthCredentials;
+              clients.push(multisigEthClient);
+              const tokenAddresses = info.tokenAddresses;
+              if (!_.isEmpty(tokenAddresses)) {
+                _.each(tokenAddresses, t => {
+                  const token = Constants.TOKEN_OPTS[t];
+                  if (!token) {
+                    log.warn(`Token ${t} unknown`);
+                    return;
+                  }
+                  log.info(`Importing multisig token: ${token.name}`);
+                  const tokenCredentials = multisigEthClient.credentials.getTokenCredentials(token);
+                  let tokenClient = _.cloneDeep(multisigEthClient);
+                  tokenClient.credentials = tokenCredentials;
+                  clients.push(tokenClient);
+                });
+              }
+            });
+          }
           return icb(null, clients);
         }
         if (err instanceof Errors.NOT_AUTHORIZED || err instanceof Errors.WALLET_DOES_NOT_EXIST) {
@@ -2402,8 +2586,14 @@ export class API extends EventEmitter {
     var checkKey = (key, cb) => {
       let opts = [
         // coin, network,  multisig
-        ['vcl', 'livenet'],
-        ['vcl', 'livenet', true]
+        ['btc', 'livenet'],
+        ['bch', 'livenet'],
+        ['eth', 'livenet'],
+        ['eth', 'testnet'],
+        ['xrp', 'livenet'],
+        ['xrp', 'testnet'],
+        ['btc', 'livenet', true],
+        ['bch', 'livenet', true]
       ];
       if (key.use44forMultisig) {
         //  testing old multi sig
@@ -2415,7 +2605,7 @@ export class API extends EventEmitter {
       if (key.use0forBCH) {
         //  testing BCH, old coin=0 wallets
         opts = opts.filter(x => {
-          return x[0] == 'vcl';
+          return x[0] == 'bch';
         });
       }
 
@@ -2429,7 +2619,7 @@ export class API extends EventEmitter {
       } else {
         //  leave only BTC, and no testnet
         opts = opts.filter(x => {
-          return x[0] == 'vcl';
+          return x[0] == 'btc';
         });
       }
 
@@ -2596,275 +2786,21 @@ export class API extends EventEmitter {
     });
   }
 
-  // john
-  // * get masternode collateral
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {Callback} cb
-  // */
-  getMasternodeCollateral(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: getMasternodeCollateral should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    $.checkState(this.credentials && this.credentials.isComplete());
-
-    var args = [];
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      args.push('coin=' + opts.coin);
-    }
-
-    var qs = '';
-    if (args.length > 0) {
-      qs = '?' + args.join('&');
-    }
-
-    var url = '/v1/masternode/collateral/' + qs;
-    this.request.get(url, cb);
-  }
-
-  // * remove masternodes
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {Callback} cb
-  // */
-  removeMasternodes(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: removeMasternodes should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    $.checkState(this.credentials && this.credentials.isComplete());
-
-    var args = [];
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      if (opts.coin != 'vcl') {
-        return cb(new Error('coin is not supported'));
-      }
-      args.push('coin=' + opts.coin);
-    }
-
-    if (opts.txid) {
-      args.push('txid=' + opts.txid);
-    }
-
-    var qs = '';
-    if (args.length > 0) {
-      qs = '?' + args.join('&');
-    }
-
-    var url = '/v1/masternode/' + qs;
-    this.request.delete(url, cb);
-  }
-
-  // * get masternodes
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {Callback} cb
-  // */
-  getMasternodes(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: getMasternodes should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    $.checkState(this.credentials && this.credentials.isComplete());
-
-    var args = [];
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      if (opts.coin != 'vcl') {
-        return cb(new Error('coin is not supported'));
-      }
-      args.push('coin=' + opts.coin);
-    }
-
-    if (opts.txid) {
-      args.push('txid=' + opts.txid);
-    }
-
-    var qs = '';
-    if (args.length > 0) {
-      qs = '?' + args.join('&');
-    }
-
-    var url = '/v1/masternode/' + qs;
-    this.request.get(url, cb);
-  }
-
-  // * get masternode status
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {Callback} cb
-  // */
-  getMasternodeStatus(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: getMasternodeStatus should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    $.checkState(this.credentials && this.credentials.isComplete());
-
-    var args = [];
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      if (opts.coin != 'vcl') {
-        return cb(new Error('coin is not supported'));
-      }
-      args.push('coin=' + opts.coin);
-    }
-
-    if (opts.txid) {
-      args.push('txid=' + opts.txid);
-    } else if (opts.address) {
-      args.push('address=' + opts.address);
-    } else if (opts.payee) {
-      args.push('payee=' + opts.payee);
-    }
-
-    var qs = '';
-    if (args.length > 0) {
-      qs = '?' + args.join('&');
-    }
-
-    var url = '/v1/masternode/status/' + qs;
-    this.request.get(url, cb);
-  }
-
-  // * broadcast masternode
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {String} opts.rawTx - masternode broadcast rawTx:
-  // * @param {Callback} cb
-  // */
-  broadcastMasternode(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: broadcastMasternode should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    var args: any = {
-      coin: '',
-      rawTx: ''
-    };
-
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      if (opts.coin != 'vcl') {
-        return cb(new Error('coin is not supported'));
-      }
-      args.coin = opts.coin;
-    }
-
-    if (!opts.rawTx) return cb(new Error('Not rawTx'));
-    args.rawTx = opts.rawTx;
-
-    if (!opts.masternodeKey) return cb(new Error('Not masternode private key'));
-    args.masternodeKey = opts.masternodeKey;
-
-    var url = '/v1/masternode/broadcast/';
-    this.request.post(url, args, (err, body) => {
-      if (err) return cb(err);
-      return cb(null, body);
+  wyreWalletOrderQuotation(data): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.request.post('/v1/service/wyre/walletOrderQuotation', data, (err, data) => {
+        if (err) return reject(err);
+        return resolve(data);
+      });
     });
   }
 
-  // * masternode ping
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {String} opts.txid - utxo id:
-  // * @param {Number} opts.vout - utxo index:
-  // * @param {Callback} cb
-  // */
-  getMasternodePing(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: broadcastMasternode should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-
-    var args = [];
-    if (opts.coin) {
-      if (!_.includes(Constants.COINS, opts.coin)) return cb(new Error('Invalid coin'));
-      if (opts.coin != 'vcl') {
-        return cb(new Error('coin is not supported'));
-      }
-      args.push('coin=' + opts.coin);
-    }
-
-    if (!opts.txid) return cb(new Error('Not utxo id'));
-    args.push('txid=' + opts.txid);
-
-    if (typeof opts.vout == 'undefined') return cb(new Error('Not utxo index'));
-    args.push('vout=' + opts.vout);
-
-    var qs = '';
-    if (args.length > 0) {
-      qs = '?' + args.join('&');
-    }
-
-    var url = '/v1/masternode/ping/' + qs;
-    this.request.get(url, cb);
-  }
-
-  // * masternode sign
-  // *
-  // * @param {String} opts.coin - Optional: defaults to current wallet coin
-  // * @param {String} opts.txid - utxo id:
-  // * @param {Number} opts.vout - utxo index:
-  // * @param {Callback} cb
-  // */
-  signMasternode(opts, cb) {
-    if (!cb) {
-      cb = opts;
-      opts = {};
-      log.warn('DEPRECATED WARN: signMasternode should receive 2 parameters.');
-    }
-
-    opts = opts || {};
-    if (!opts.coin) {
-      return cb(new Error('Invalid coin'));
-    }
-
-    if (opts.coin != 'vcl') {
-      return cb(new Error('coin is not supported'));
-    }
-
-    if (!opts.txid) return cb(new Error('Not utxo id'));
-    if (typeof opts.vout == 'undefined') return cb(new Error('Not utxo index'));
-    if (!opts.signPrivKey) return cb(new Error('Not sign private key'));
-    if (!opts.pingHeight) return cb(new Error('Not ping block height'));
-    if (!opts.pingHash) return cb(new Error('Not ping blockhash'));
-    if (!opts.privKey) return cb(new Error('Not masternode private key'));
-    if (!Utils.isPrivateKey(opts.privKey)) {
-      return cb(new Error('Invalid masternode private key'));
-    }
-
-    if (!opts.ip) return cb(new Error('Not masternode ip'));
-    var ip = opts.ip.split(':');
-
-    var masternode = new Masternode(opts.txid, opts.vout, opts.signPrivKey, opts.pingHash, opts.privKey, ip[0], ip[1]);
-
-    return cb(null, masternode.singMasternode());
+  wyreWalletOrderReservation(data): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.request.post('/v1/service/wyre/walletOrderReservation', data, (err, data) => {
+        if (err) return reject(err);
+        return resolve(data);
+      });
+    });
   }
 }

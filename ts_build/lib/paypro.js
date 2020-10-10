@@ -5,10 +5,11 @@ var $ = require('preconditions').singleton();
 var URL = require('url');
 var _ = require('lodash');
 var superagent = require('superagent');
-var Bitcore = crypto_wallet_core_1.VircleLib;
+var Bitcore = crypto_wallet_core_1.BitcoreLib;
 var Errors = require('./errors');
 var Bitcore_ = {
-    vcl: crypto_wallet_core_1.VircleLib
+    btc: Bitcore,
+    bch: crypto_wallet_core_1.BitcoreLibCash
 };
 var JSON_PAYMENT_REQUEST_CONTENT_TYPE = 'application/payment-request';
 var JSON_PAYMENT_VERIFY_CONTENT_TYPE = 'application/verify-payment';
@@ -150,7 +151,7 @@ var PayPro = (function () {
     PayPro.get = function (opts, cb) {
         $.checkArgument(opts && opts.url);
         opts.trustedKeys = opts.trustedKeys || dfltTrustedKeys;
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         var bitcore = Bitcore_[coin];
         var COIN = coin.toUpperCase();
         opts.headers = opts.headers || {
@@ -204,7 +205,7 @@ var PayPro = (function () {
         $.checkArgument(opts.rawTxUnsigned)
             .checkArgument(opts.url)
             .checkArgument(opts.rawTx);
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         var COIN = coin.toUpperCase();
         opts.network = opts.network || 'livenet';
         opts.method = 'POST';

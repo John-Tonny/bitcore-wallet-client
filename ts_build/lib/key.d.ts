@@ -1,9 +1,6 @@
 export declare class Key {
     version: number;
     use0forBCH: boolean;
-    useforElectrum: boolean;
-    useSegwit: boolean;
-    useMulti: boolean;
     use44forMultisig: boolean;
     compliantDerivation: boolean;
     id: any;
@@ -15,7 +12,6 @@ export declare class Key {
     static fromExtendedPrivateKey: (xPriv: any, opts: any) => any;
     static fromObj: (obj: any) => any;
     toObj: () => {};
-    getPrivateKey: (password: any, rootPath: any, path: any) => any;
     isPrivKeyEncrypted: () => boolean;
     checkPassword: (password: any) => boolean;
     get: (password: any) => any;

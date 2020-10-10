@@ -1,12 +1,12 @@
 'use strict';
 
-import { VircleLib } from 'crypto-wallet-core';
+import { BitcoreLib } from 'crypto-wallet-core';
 
 import { Constants, Utils } from './common';
 const $ = require('preconditions').singleton();
 const _ = require('lodash');
 
-const Bitcore = VircleLib;
+const Bitcore = BitcoreLib;
 const sjcl = require('sjcl');
 
 export class Credentials {
@@ -43,7 +43,8 @@ export class Credentials {
     'version',
     'rootPath', // this is only for information
     'keyId', // this is only for information
-    'token' // is this wallet is for a ERC20 token
+    'token', // this is for a ERC20 token
+    'multisigEthInfo' // this is for a MULTISIG eth wallet
   ];
   version: number;
   account: number;
@@ -65,6 +66,7 @@ export class Credentials {
   addressType: string;
   keyId: string;
   token?: string;
+  multisigEthInfo?: any;
   externalSource?: boolean; // deprecated property?
 
   constructor() {
@@ -142,6 +144,24 @@ export class Credentials {
     return ret;
   }
 
+  /*
+   * creates a Multisig wallet from a ETH wallet
+   */
+  getMultisigEthCredentials(multisigEthInfo: {
+    multisigContractAddress: string;
+    walletName: string;
+    n: string;
+    m: string;
+  }) {
+    const ret = _.cloneDeep(this);
+    ret.walletId = `${ret.walletId}-${multisigEthInfo.multisigContractAddress}`;
+    ret.walletName = multisigEthInfo.walletName;
+    ret.n = multisigEthInfo.n;
+    ret.m = multisigEthInfo.m;
+    ret.multisigEthInfo = multisigEthInfo;
+    return ret;
+  }
+
   getRootPath() {
     // This is for OLD v1.0 credentials only.
     var legacyRootPath = () => {
@@ -171,8 +191,6 @@ export class Credentials {
         coin = '0';
       } else if (this.coin == 'eth') {
         coin = '60';
-      } else if (this.coin == 'vcl') {
-        coin = '57';
       } else if (this.coin == 'xrp') {
         coin = '144';
       } else {
@@ -206,7 +224,7 @@ export class Credentials {
       throw new Error('External Wallets are no longer supported');
     }
 
-    x.coin = x.coin || 'vcl';
+    x.coin = x.coin || 'btc';
     x.addressType = x.addressType || Constants.SCRIPT_TYPES.P2SH;
     x.account = x.account || 0;
 
@@ -269,7 +287,8 @@ export class Credentials {
 
   isComplete() {
     if (!this.m || !this.n) return false;
-    if (!this.publicKeyRing || this.publicKeyRing.length != this.n) return false;
+    if ((this.coin === 'btc' || this.coin === 'bch') && (!this.publicKeyRing || this.publicKeyRing.length != this.n))
+      return false;
     return true;
   }
 }

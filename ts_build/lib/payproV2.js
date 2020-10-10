@@ -41,19 +41,19 @@ var query = require('querystring');
 var url = require('url');
 var Errors = require('./errors');
 var dfltTrustedKeys = require('../util/JsonPaymentProtocolKeys.js');
-var Bitcore = require('crypto-wallet-core').VircleLib;
+var Bitcore = require('crypto-wallet-core').BitcoreLib;
 var _ = require('lodash');
 var sha256 = Bitcore.crypto.Hash.sha256;
 var BN = Bitcore.crypto.BN;
 var Bitcore_ = {
-    vcl: require('crypto-wallet-core').VircleLib
+    btc: Bitcore,
+    bch: require('crypto-wallet-core').BitcoreLibCash
 };
 var MAX_FEE_PER_KB = {
     btc: 10000 * 1000,
     bch: 10000 * 1000,
-    eth: 50000000000,
-    vcl: 10000 * 1000,
-    xrp: 50000000000
+    eth: 1000000000000,
+    xrp: 1000000000000
 };
 var NetworkMap;
 (function (NetworkMap) {
@@ -188,7 +188,7 @@ var PayProV2 = (function () {
         });
     };
     PayProV2.selectPaymentOption = function (_a) {
-        var paymentUrl = _a.paymentUrl, chain = _a.chain, currency = _a.currency, _b = _a.unsafeBypassValidation, unsafeBypassValidation = _b === void 0 ? false : _b;
+        var paymentUrl = _a.paymentUrl, chain = _a.chain, currency = _a.currency, payload = _a.payload, _b = _a.unsafeBypassValidation, unsafeBypassValidation = _b === void 0 ? false : _b;
         return __awaiter(this, void 0, void 0, function () {
             var _c, rawBody, headers;
             return __generator(this, function (_d) {
@@ -204,7 +204,8 @@ var PayProV2 = (function () {
                             },
                             args: JSON.stringify({
                                 chain: chain,
-                                currency: currency
+                                currency: currency,
+                                payload: payload
                             })
                         })];
                     case 1:

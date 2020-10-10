@@ -4,7 +4,6 @@ import { EventEmitter } from 'events';
 import { Utils } from './common';
 import { Credentials } from './credentials';
 import { Key } from './key';
-import { Masternode } from './masternode';
 import { PayPro } from './paypro';
 import { PayProV2 } from './payproV2';
 import { Verifier } from './verifier';
@@ -31,8 +30,8 @@ export declare class API extends EventEmitter {
     static Utils: typeof Utils;
     static sjcl: any;
     static errors: any;
-    static Masternode: typeof Masternode;
-    static Vircle: any;
+    static Bitcore: any;
+    static BitcoreCash: any;
     constructor(opts?: any);
     static privateKeyEncryptionOpts: {
         iter: number;
@@ -100,6 +99,13 @@ export declare class API extends EventEmitter {
     getPayPro(txp: any, cb: any): any;
     getPayProV2(txp: any): Promise<any>;
     pushSignatures(txp: any, signatures: any, cb: any, base: any): any;
+    createAdvertisement(opts: any, cb: any): void;
+    getAdvertisements(opts: any, cb: any): void;
+    getAdvertisementsByCountry(opts: any, cb: any): void;
+    getAdvertisement(opts: any, cb: any): void;
+    activateAdvertisement(opts: any, cb: any): void;
+    deactivateAdvertisement(opts: any, cb: any): void;
+    deleteAdvertisement(opts: any, cb: any): void;
     signTxProposalFromAirGapped(txp: any, encryptedPkr: any, m: any, n: any, password: any): void;
     static signTxProposalFromAirGapped(key: any, txp: any, unencryptedPkr: any, m: any, n: any, opts: any, cb: any): any;
     rejectTxProposal(txp: any, reason: any, cb: any): void;
@@ -121,6 +127,8 @@ export declare class API extends EventEmitter {
     txConfirmationUnsubscribe(txid: any, cb: any): void;
     getSendMaxInfo(opts: any, cb: any): void;
     getEstimateGas(opts: any, cb: any): void;
+    getMultisigContractInstantiationInfo(opts: any, cb: any): void;
+    getMultisigContractInfo(opts: any, cb: any): void;
     getStatusByIdentifier(opts: any, cb: any): void;
     _oldCopayDecrypt(username: any, password: any, blob: any): any;
     getWalletIdsFromOldCopay(username: any, password: any, blob: any): any[];
@@ -136,12 +144,7 @@ export declare class API extends EventEmitter {
     simplexGetQuote(data: any): Promise<any>;
     simplexPaymentRequest(data: any): Promise<any>;
     simplexGetEvents(data: any): Promise<any>;
-    getMasternodeCollateral(opts: any, cb: any): any;
-    removeMasternodes(opts: any, cb: any): any;
-    getMasternodes(opts: any, cb: any): any;
-    getMasternodeStatus(opts: any, cb: any): any;
-    broadcastMasternode(opts: any, cb: any): any;
-    getMasternodePing(opts: any, cb: any): any;
-    signMasternode(opts: any, cb: any): any;
+    wyreWalletOrderQuotation(data: any): Promise<any>;
+    wyreWalletOrderReservation(data: any): Promise<any>;
 }
 //# sourceMappingURL=api.d.ts.map

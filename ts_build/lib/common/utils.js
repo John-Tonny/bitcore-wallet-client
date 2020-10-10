@@ -25,9 +25,12 @@ var defaults_1 = require("./defaults");
 var $ = require('preconditions').singleton();
 var sjcl = require('sjcl');
 var Stringify = require('json-stable-stringify');
-var Bitcore = crypto_wallet_core_1.VircleLib;
+var Bitcore = crypto_wallet_core_1.BitcoreLib;
 var Bitcore_ = {
-    vcl: crypto_wallet_core_1.VircleLib
+    btc: Bitcore,
+    bch: crypto_wallet_core_1.BitcoreLibCash,
+    eth: Bitcore,
+    xrp: Bitcore
 };
 var PrivateKey = Bitcore.PrivateKey;
 var PublicKey = Bitcore.PublicKey;
@@ -143,7 +146,7 @@ var Utils = (function () {
     };
     Utils.deriveAddress = function (scriptType, publicKeyRing, path, m, network, coin) {
         $.checkArgument(_.includes(_.values(constants_1.Constants.SCRIPT_TYPES), scriptType));
-        coin = coin || 'vcl';
+        coin = coin || 'btc';
         var chain = this.getChain(coin).toLowerCase();
         var bitcore = Bitcore_[chain];
         var publicKeys = _.map(publicKeyRing, function (item) {
@@ -182,7 +185,7 @@ var Utils = (function () {
     };
     Utils.xPubToCopayerId = function (coin, xpub) {
         var chain = this.getChain(coin).toLowerCase();
-        var str = chain == 'btc' || chain == 'vcl' ? xpub : chain + xpub;
+        var str = chain == 'btc' ? xpub : chain + xpub;
         var hash = sjcl.hash.sha256.hash(str);
         return sjcl.codec.hex.fromBits(hash);
     };
@@ -226,7 +229,7 @@ var Utils = (function () {
         return addSeparators(amount, opts.thousandsSeparator || ',', opts.decimalSeparator || '.', u[precision].minDecimals);
     };
     Utils.buildTx = function (txp) {
-        var coin = txp.coin || 'vcl';
+        var coin = txp.coin || 'btc';
         if (constants_1.Constants.UTXO_COINS.includes(coin)) {
             var bitcore = Bitcore_[coin];
             var t = new bitcore.Transaction();
@@ -267,9 +270,7 @@ var Utils = (function () {
                 });
             }
             t.fee(txp.fee);
-            if (txp.changeAddress) {
-                t.change(txp.changeAddress.address);
-            }
+            t.change(txp.changeAddress.address);
             if (t.outputs.length > 1) {
                 var outputOrder = _.reject(txp.outputOrder, function (order) {
                     return order >= t.outputs.length;
@@ -292,7 +293,7 @@ var Utils = (function () {
             return t;
         }
         else {
-            var data = txp.data, destinationTag = txp.destinationTag, outputs = txp.outputs, payProUrl = txp.payProUrl, tokenAddress = txp.tokenAddress;
+            var data = txp.data, destinationTag = txp.destinationTag, outputs = txp.outputs, payProUrl = txp.payProUrl, tokenAddress = txp.tokenAddress, multisigContractAddress = txp.multisigContractAddress;
             var recipients = outputs.map(function (output) {
                 return {
                     amount: output.amount,
@@ -306,21 +307,13 @@ var Utils = (function () {
             }
             var unsignedTxs_1 = [];
             var isERC20 = tokenAddress && !payProUrl;
-            var chain = isERC20 ? 'ERC20' : this.getChain(coin);
+            var isETHMULTISIG = multisigContractAddress && !payProUrl;
+            var chain = isETHMULTISIG ? 'ETHMULTISIG' : isERC20 ? 'ERC20' : this.getChain(coin);
             for (var index = 0; index < recipients.length; index++) {
                 var rawTx = crypto_wallet_core_1.Transactions.create(__assign(__assign(__assign({}, txp), recipients[index]), { tag: destinationTag ? Number(destinationTag) : undefined, chain: chain, nonce: Number(txp.nonce) + Number(index), recipients: [recipients[index]] }));
                 unsignedTxs_1.push(rawTx);
             }
             return { uncheckedSerialize: function () { return unsignedTxs_1; } };
-        }
-    };
-    Utils.isPrivateKey = function (privKey) {
-        try {
-            var privkey = new PrivateKey(privKey);
-            return true;
-        }
-        catch (e) {
-            return false;
         }
     };
     return Utils;

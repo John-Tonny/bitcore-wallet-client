@@ -4,7 +4,7 @@ var crypto_wallet_core_1 = require("crypto-wallet-core");
 var common_1 = require("./common");
 var $ = require('preconditions').singleton();
 var _ = require('lodash');
-var Bitcore = crypto_wallet_core_1.VircleLib;
+var Bitcore = crypto_wallet_core_1.BitcoreLib;
 var sjcl = require('sjcl');
 var Credentials = (function () {
     function Credentials() {
@@ -63,6 +63,15 @@ var Credentials = (function () {
         ret.token = token;
         return ret;
     };
+    Credentials.prototype.getMultisigEthCredentials = function (multisigEthInfo) {
+        var ret = _.cloneDeep(this);
+        ret.walletId = ret.walletId + "-" + multisigEthInfo.multisigContractAddress;
+        ret.walletName = multisigEthInfo.walletName;
+        ret.n = multisigEthInfo.n;
+        ret.m = multisigEthInfo.m;
+        ret.multisigEthInfo = multisigEthInfo;
+        return ret;
+    };
     Credentials.prototype.getRootPath = function () {
         var _this = this;
         var legacyRootPath = function () {
@@ -95,9 +104,6 @@ var Credentials = (function () {
             else if (_this.coin == 'eth') {
                 coin = '60';
             }
-            else if (_this.coin == 'vcl') {
-                coin = '57';
-            }
             else if (_this.coin == 'xrp') {
                 coin = '144';
             }
@@ -125,7 +131,7 @@ var Credentials = (function () {
         if (x.externalSource) {
             throw new Error('External Wallets are no longer supported');
         }
-        x.coin = x.coin || 'vcl';
+        x.coin = x.coin || 'btc';
         x.addressType = x.addressType || common_1.Constants.SCRIPT_TYPES.P2SH;
         x.account = x.account || 0;
         $.checkState(x.xPrivKey || x.xPubKey || x.xPrivKeyEncrypted, 'invalid input');
@@ -177,7 +183,7 @@ var Credentials = (function () {
     Credentials.prototype.isComplete = function () {
         if (!this.m || !this.n)
             return false;
-        if (!this.publicKeyRing || this.publicKeyRing.length != this.n)
+        if ((this.coin === 'btc' || this.coin === 'bch') && (!this.publicKeyRing || this.publicKeyRing.length != this.n))
             return false;
         return true;
     };
@@ -214,7 +220,8 @@ var Credentials = (function () {
         'version',
         'rootPath',
         'keyId',
-        'token'
+        'token',
+        'multisigEthInfo'
     ];
     return Credentials;
 }());

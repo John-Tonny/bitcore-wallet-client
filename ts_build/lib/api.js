@@ -30,7 +30,6 @@ var sjcl_1 = __importDefault(require("sjcl"));
 var common_1 = require("./common");
 var credentials_1 = require("./credentials");
 var key_1 = require("./key");
-var masternode_1 = require("./masternode");
 var paypro_1 = require("./paypro");
 var payproV2_1 = require("./payproV2");
 var request_1 = require("./request");
@@ -39,9 +38,12 @@ var $ = require('preconditions').singleton();
 var util = require('util');
 var async = require('async');
 var events = require('events');
-var Bitcore = CWC.VircleLib;
+var Bitcore = CWC.BitcoreLib;
 var Bitcore_ = {
-    vcl: CWC.VircleLib
+    btc: CWC.BitcoreLib,
+    bch: CWC.BitcoreLibCash,
+    eth: CWC.BitcoreLib,
+    xrp: CWC.BitcoreLib
 };
 var Mnemonic = require('bitcore-mnemonic');
 var url = require('url');
@@ -298,7 +300,7 @@ var API = (function (_super) {
     API.prototype.getBalanceFromPrivateKey = function (privateKey, coin, cb) {
         if (lodash_1.default.isFunction(coin)) {
             cb = coin;
-            coin = 'vcl';
+            coin = 'btc';
         }
         var B = Bitcore_[coin];
         var privateKey = new B.PrivateKey(privateKey);
@@ -314,7 +316,7 @@ var API = (function (_super) {
     API.prototype.buildTxFromPrivateKey = function (privateKey, destinationAddress, opts, cb) {
         var _this = this;
         opts = opts || {};
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         var signingMethod = opts.signingMethod || 'ecdsa';
         if (!lodash_1.default.includes(common_1.Constants.COINS, coin))
             return cb(new Error('Invalid coin'));
@@ -434,7 +436,7 @@ var API = (function (_super) {
             var walletId = split(widHex, [8, 12, 16, 20]).join('-');
             var walletPrivKey = Bitcore.PrivateKey.fromString(secretSplit[1]);
             var networkChar = secretSplit[2];
-            var coin = secretSplit[3] || 'vcl';
+            var coin = secretSplit[3] || 'btc';
             return {
                 walletId: walletId,
                 walletPrivKey: walletPrivKey,
@@ -563,7 +565,7 @@ var API = (function (_super) {
         $.checkArgument(coin || lodash_1.default.includes(common_1.Constants.COINS, coin));
         $.checkArgument(network || lodash_1.default.includes(['livenet', 'testnet'], network));
         var chain = common_1.Utils.getChain(coin).toLowerCase();
-        this.request.get('/v2/feelevels/?coin=' + (chain || 'vcl') + '&network=' + (network || 'livenet'), function (err, result) {
+        this.request.get('/v2/feelevels/?coin=' + (chain || 'btc') + '&network=' + (network || 'livenet'), function (err, result) {
             if (err)
                 return cb(err);
             return cb(err, result);
@@ -586,7 +588,7 @@ var API = (function (_super) {
         if (opts)
             $.shouldBeObject(opts);
         opts = opts || {};
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         if (!lodash_1.default.includes(common_1.Constants.COINS, coin))
             return cb(new Error('Invalid coin'));
         var network = opts.network || 'livenet';
@@ -642,7 +644,7 @@ var API = (function (_super) {
         if (!this._checkKeyDerivation())
             return cb(new Error('Cannot join wallet'));
         opts = opts || {};
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         if (!lodash_1.default.includes(common_1.Constants.COINS, coin))
             return cb(new Error('Invalid coin'));
         try {
@@ -809,6 +811,10 @@ var API = (function (_super) {
         if (opts.tokenAddress) {
             qs.push('tokenAddress=' + opts.tokenAddress);
         }
+        if (opts.multisigContractAddress) {
+            qs.push('multisigContractAddress=' + opts.multisigContractAddress);
+            qs.push('network=' + this.credentials.network);
+        }
         this.request.get('/v3/wallets/?' + qs.join('&'), function (err, result) {
             if (err)
                 return cb(err);
@@ -838,7 +844,7 @@ var API = (function (_super) {
         $.checkArgument(opts).checkArgument(opts.payProUrl);
         paypro_1.PayPro.get({
             url: opts.payProUrl,
-            coin: this.credentials.coin || 'vcl',
+            coin: this.credentials.coin || 'btc',
             network: this.credentials.network || 'livenet',
             request: this.request
         }, function (err, paypro) {
@@ -888,7 +894,7 @@ var API = (function (_super) {
         $.checkState(this.credentials && this.credentials.isComplete());
         $.checkState(this.credentials.sharedEncryptingKey);
         $.checkArgument(opts);
-        if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+        if (!opts.signingMethod && this.credentials.coin == 'bch') {
             opts.signingMethod = 'schnorr';
         }
         var args = this._getCreateTxProposalArgs(opts);
@@ -909,7 +915,7 @@ var API = (function (_super) {
         $.checkArgument(opts).checkArgument(opts.txp);
         $.checkState(parseInt(opts.txp.version) >= 3);
         var t = common_1.Utils.buildTx(opts.txp);
-        var hash = t.uncheckedSerialize1();
+        var hash = t.uncheckedSerialize();
         var args = {
             proposalSignature: common_1.Utils.signMessage(hash, this.credentials.requestPrivKey)
         };
@@ -985,6 +991,9 @@ var API = (function (_super) {
         if (opts.tokenAddress) {
             args.push('tokenAddress=' + opts.tokenAddress);
         }
+        if (opts.multisigContractAddress) {
+            args.push('multisigContractAddress=' + opts.multisigContractAddress);
+        }
         var qs = '';
         if (args.length > 0) {
             qs = '?' + args.join('&');
@@ -1039,7 +1048,7 @@ var API = (function (_super) {
             return cb();
         paypro_1.PayPro.get({
             url: txp.payProUrl,
-            coin: txp.coin || 'vcl',
+            coin: txp.coin || 'btc',
             network: txp.network || 'livenet',
             request: this.request
         }, function (err, paypro) {
@@ -1053,10 +1062,14 @@ var API = (function (_super) {
             return Promise.resolve();
         var chain = common_1.Utils.getChain(txp.coin);
         var currency = txp.coin.toUpperCase();
+        var payload = {
+            address: txp.from
+        };
         return payproV2_1.PayProV2.selectPaymentOption({
             paymentUrl: txp.payProUrl,
             chain: chain,
-            currency: currency
+            currency: currency,
+            payload: payload
         });
     };
     API.prototype.pushSignatures = function (txp, signatures, cb, base) {
@@ -1073,10 +1086,7 @@ var API = (function (_super) {
             });
             if (!isLegit)
                 return cb(new Errors.SERVER_COMPROMISED());
-            var defaultBase = '/v1/txproposals/';
-            if (txp.coin === 'bch' && txp.network === 'testnet') {
-                defaultBase = '/v2/txproposals/';
-            }
+            var defaultBase = '/v2/txproposals/';
             base = base || defaultBase;
             var url = base + txp.id + '/signatures/';
             var args = {
@@ -1093,12 +1103,81 @@ var API = (function (_super) {
             return cb(err);
         });
     };
+    API.prototype.createAdvertisement = function (opts, cb) {
+        var url = '/v1/advertisements/';
+        var args = opts;
+        this.request.post(url, args, function (err, createdAd) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, createdAd);
+        });
+    };
+    API.prototype.getAdvertisements = function (opts, cb) {
+        var url = '/v1/advertisements/';
+        if (opts.testing === true) {
+            url = '/v1/advertisements/' + '?testing=true';
+        }
+        this.request.get(url, function (err, ads) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, ads);
+        });
+    };
+    API.prototype.getAdvertisementsByCountry = function (opts, cb) {
+        var url = '/v1/advertisements/country/' + opts.country;
+        this.request.get(url, function (err, ads) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, ads);
+        });
+    };
+    API.prototype.getAdvertisement = function (opts, cb) {
+        var url = '/v1/advertisements/' + opts.adId;
+        this.request.get(url, function (err, body) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, body);
+        });
+    };
+    API.prototype.activateAdvertisement = function (opts, cb) {
+        var url = '/v1/advertisements/' + opts.adId + '/activate';
+        var args = opts;
+        this.request.post(url, args, function (err, body) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, body);
+        });
+    };
+    API.prototype.deactivateAdvertisement = function (opts, cb) {
+        var url = '/v1/advertisements/' + opts.adId + '/deactivate';
+        var args = opts;
+        this.request.post(url, args, function (err, body) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, body);
+        });
+    };
+    API.prototype.deleteAdvertisement = function (opts, cb) {
+        var url = '/v1/advertisements/' + opts.adId;
+        this.request.delete(url, function (err, body) {
+            if (err) {
+                return cb(err);
+            }
+            return cb(null, body);
+        });
+    };
     API.prototype.signTxProposalFromAirGapped = function (txp, encryptedPkr, m, n, password) {
         throw new Error('signTxProposalFromAirGapped not yet implemented in v9.0.0');
     };
     API.signTxProposalFromAirGapped = function (key, txp, unencryptedPkr, m, n, opts, cb) {
         opts = opts || {};
-        var coin = opts.coin || 'vcl';
+        var coin = opts.coin || 'btc';
         if (!lodash_1.default.includes(common_1.Constants.COINS, coin))
             return cb(new Error('Invalid coin'));
         var publicKeyRing = JSON.parse(unencryptedPkr);
@@ -1194,7 +1273,7 @@ var API = (function (_super) {
                 var unserializedTxs = typeof rawTxUnsigned === 'string' ? [rawTxUnsigned] : rawTxUnsigned;
                 var serializedTxs = typeof serializedTx === 'string' ? [serializedTx] : serializedTx;
                 var i = 0;
-                var isBtcSegwit = (txp.coin == 'btc' || txp.coin == 'vcl') && (txp.addressType == 'P2WSH' || txp.addressType == 'P2WPKH');
+                var isBtcSegwit = txp.coin == 'btc' && (txp.addressType == 'P2WSH' || txp.addressType == 'P2WPKH');
                 for (var _i = 0, unserializedTxs_1 = unserializedTxs; _i < unserializedTxs_1.length; _i++) {
                     var unsigned = unserializedTxs_1[_i];
                     var size = serializedTxs[i++].length / 2;
@@ -1271,6 +1350,8 @@ var API = (function (_super) {
                 args.push('limit=' + opts.limit);
             if (opts.tokenAddress)
                 args.push('tokenAddress=' + opts.tokenAddress);
+            if (opts.multisigContractAddress)
+                args.push('multisigContractAddress=' + opts.multisigContractAddress);
             if (opts.includeExtendedInfo)
                 args.push('includeExtendedInfo=1');
         }
@@ -1442,6 +1523,24 @@ var API = (function (_super) {
             return cb(null, gasLimit);
         });
     };
+    API.prototype.getMultisigContractInstantiationInfo = function (opts, cb) {
+        var url = '/v1/ethmultisig/';
+        opts.network = this.credentials.network;
+        this.request.post(url, opts, function (err, contractInstantiationInfo) {
+            if (err)
+                return cb(err);
+            return cb(null, contractInstantiationInfo);
+        });
+    };
+    API.prototype.getMultisigContractInfo = function (opts, cb) {
+        var url = '/v1/ethmultisig/info';
+        opts.network = this.credentials.network;
+        this.request.post(url, opts, function (err, contractInfo) {
+            if (err)
+                return cb(err);
+            return cb(null, contractInfo);
+        });
+    };
     API.prototype.getStatusByIdentifier = function (opts, cb) {
         var _this = this;
         $.checkState(this.credentials);
@@ -1507,7 +1606,7 @@ var API = (function (_super) {
                 }
             });
             k.use44forMultisig = x.n > 1 ? true : false;
-            k.use0forBCH = x.use145forBCH ? false : x.coin == 'bch' || x.coin == 'vcl' ? true : false;
+            k.use0forBCH = x.use145forBCH ? false : x.coin == 'bch' ? true : false;
             k.BIP45 = x.derivationStrategy == 'BIP45';
         }
         else {
@@ -1531,7 +1630,7 @@ var API = (function (_super) {
         if (c.externalSource) {
             throw new Error('External Wallets are no longer supported');
         }
-        c.coin = c.coin || 'vcl';
+        c.coin = c.coin || 'btc';
         c.addressType = c.addressType || common_1.Constants.SCRIPT_TYPES.P2SH;
         c.account = c.account || 0;
         c.rootPath = c.getRootPath();
@@ -1606,8 +1705,7 @@ var API = (function (_super) {
             client.fromString(c);
             client.openWallet({}, function (err, status) {
                 if (!err) {
-                    if ((opts.coin == 'btc' || opts.coin == 'vcl') &&
-                        (status.wallet.addressType == 'P2WPKH' || status.wallet.addressType == 'P2WSH')) {
+                    if (opts.coin == 'btc' && (status.wallet.addressType == 'P2WPKH' || status.wallet.addressType == 'P2WSH')) {
                         client.credentials.addressType =
                             status.wallet.n == 1 ? common_1.Constants.SCRIPT_TYPES.P2WPKH : common_1.Constants.SCRIPT_TYPES.P2WSH;
                     }
@@ -1627,6 +1725,36 @@ var API = (function (_super) {
                             clients_1.push(tokenClient);
                         });
                     }
+                    var multisigEthInfo = status.preferences.multisigEthInfo;
+                    if (!lodash_1.default.isEmpty(multisigEthInfo)) {
+                        lodash_1.default.each(multisigEthInfo, function (info) {
+                            log.info("Importing multisig wallet. Address: " + info.multisigContractAddress + " - m: " + info.m + " - n: " + info.n);
+                            var multisigEthCredentials = client.credentials.getMultisigEthCredentials({
+                                walletName: info.walletName,
+                                multisigContractAddress: info.multisigContractAddress,
+                                n: info.n,
+                                m: info.m
+                            });
+                            var multisigEthClient = lodash_1.default.cloneDeep(client);
+                            multisigEthClient.credentials = multisigEthCredentials;
+                            clients_1.push(multisigEthClient);
+                            var tokenAddresses = info.tokenAddresses;
+                            if (!lodash_1.default.isEmpty(tokenAddresses)) {
+                                lodash_1.default.each(tokenAddresses, function (t) {
+                                    var token = common_1.Constants.TOKEN_OPTS[t];
+                                    if (!token) {
+                                        log.warn("Token " + t + " unknown");
+                                        return;
+                                    }
+                                    log.info("Importing multisig token: " + token.name);
+                                    var tokenCredentials = multisigEthClient.credentials.getTokenCredentials(token);
+                                    var tokenClient = lodash_1.default.cloneDeep(multisigEthClient);
+                                    tokenClient.credentials = tokenCredentials;
+                                    clients_1.push(tokenClient);
+                                });
+                            }
+                        });
+                    }
                     return icb(null, clients_1);
                 }
                 if (err instanceof Errors.NOT_AUTHORIZED || err instanceof Errors.WALLET_DOES_NOT_EXIST) {
@@ -1637,8 +1765,14 @@ var API = (function (_super) {
         };
         var checkKey = function (key, cb) {
             var opts = [
-                ['vcl', 'livenet'],
-                ['vcl', 'livenet', true]
+                ['btc', 'livenet'],
+                ['bch', 'livenet'],
+                ['eth', 'livenet'],
+                ['eth', 'testnet'],
+                ['xrp', 'livenet'],
+                ['xrp', 'testnet'],
+                ['btc', 'livenet', true],
+                ['bch', 'livenet', true]
             ];
             if (key.use44forMultisig) {
                 opts = opts.filter(function (x) {
@@ -1647,7 +1781,7 @@ var API = (function (_super) {
             }
             if (key.use0forBCH) {
                 opts = opts.filter(function (x) {
-                    return x[0] == 'vcl';
+                    return x[0] == 'bch';
                 });
             }
             if (!key.nonCompliantDerivation) {
@@ -1659,7 +1793,7 @@ var API = (function (_super) {
             }
             else {
                 opts = opts.filter(function (x) {
-                    return x[0] == 'vcl';
+                    return x[0] == 'btc';
                 });
             }
             var clients = [];
@@ -1800,208 +1934,25 @@ var API = (function (_super) {
             });
         });
     };
-    API.prototype.getMasternodeCollateral = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: getMasternodeCollateral should receive 2 parameters.');
-        }
-        opts = opts || {};
-        $.checkState(this.credentials && this.credentials.isComplete());
-        var args = [];
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            args.push('coin=' + opts.coin);
-        }
-        var qs = '';
-        if (args.length > 0) {
-            qs = '?' + args.join('&');
-        }
-        var url = '/v1/masternode/collateral/' + qs;
-        this.request.get(url, cb);
-    };
-    API.prototype.removeMasternodes = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: removeMasternodes should receive 2 parameters.');
-        }
-        opts = opts || {};
-        $.checkState(this.credentials && this.credentials.isComplete());
-        var args = [];
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            if (opts.coin != 'vcl') {
-                return cb(new Error('coin is not supported'));
-            }
-            args.push('coin=' + opts.coin);
-        }
-        if (opts.txid) {
-            args.push('txid=' + opts.txid);
-        }
-        var qs = '';
-        if (args.length > 0) {
-            qs = '?' + args.join('&');
-        }
-        var url = '/v1/masternode/' + qs;
-        this.request.delete(url, cb);
-    };
-    API.prototype.getMasternodes = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: getMasternodes should receive 2 parameters.');
-        }
-        opts = opts || {};
-        $.checkState(this.credentials && this.credentials.isComplete());
-        var args = [];
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            if (opts.coin != 'vcl') {
-                return cb(new Error('coin is not supported'));
-            }
-            args.push('coin=' + opts.coin);
-        }
-        if (opts.txid) {
-            args.push('txid=' + opts.txid);
-        }
-        var qs = '';
-        if (args.length > 0) {
-            qs = '?' + args.join('&');
-        }
-        var url = '/v1/masternode/' + qs;
-        this.request.get(url, cb);
-    };
-    API.prototype.getMasternodeStatus = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: getMasternodeStatus should receive 2 parameters.');
-        }
-        opts = opts || {};
-        $.checkState(this.credentials && this.credentials.isComplete());
-        var args = [];
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            if (opts.coin != 'vcl') {
-                return cb(new Error('coin is not supported'));
-            }
-            args.push('coin=' + opts.coin);
-        }
-        if (opts.txid) {
-            args.push('txid=' + opts.txid);
-        }
-        else if (opts.address) {
-            args.push('address=' + opts.address);
-        }
-        else if (opts.payee) {
-            args.push('payee=' + opts.payee);
-        }
-        var qs = '';
-        if (args.length > 0) {
-            qs = '?' + args.join('&');
-        }
-        var url = '/v1/masternode/status/' + qs;
-        this.request.get(url, cb);
-    };
-    API.prototype.broadcastMasternode = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: broadcastMasternode should receive 2 parameters.');
-        }
-        opts = opts || {};
-        var args = {
-            coin: '',
-            rawTx: ''
-        };
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            if (opts.coin != 'vcl') {
-                return cb(new Error('coin is not supported'));
-            }
-            args.coin = opts.coin;
-        }
-        if (!opts.rawTx)
-            return cb(new Error('Not rawTx'));
-        args.rawTx = opts.rawTx;
-        if (!opts.masternodeKey)
-            return cb(new Error('Not masternode private key'));
-        args.masternodeKey = opts.masternodeKey;
-        var url = '/v1/masternode/broadcast/';
-        this.request.post(url, args, function (err, body) {
-            if (err)
-                return cb(err);
-            return cb(null, body);
+    API.prototype.wyreWalletOrderQuotation = function (data) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.request.post('/v1/service/wyre/walletOrderQuotation', data, function (err, data) {
+                if (err)
+                    return reject(err);
+                return resolve(data);
+            });
         });
     };
-    API.prototype.getMasternodePing = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: broadcastMasternode should receive 2 parameters.');
-        }
-        opts = opts || {};
-        var args = [];
-        if (opts.coin) {
-            if (!lodash_1.default.includes(common_1.Constants.COINS, opts.coin))
-                return cb(new Error('Invalid coin'));
-            if (opts.coin != 'vcl') {
-                return cb(new Error('coin is not supported'));
-            }
-            args.push('coin=' + opts.coin);
-        }
-        if (!opts.txid)
-            return cb(new Error('Not utxo id'));
-        args.push('txid=' + opts.txid);
-        if (typeof opts.vout == 'undefined')
-            return cb(new Error('Not utxo index'));
-        args.push('vout=' + opts.vout);
-        var qs = '';
-        if (args.length > 0) {
-            qs = '?' + args.join('&');
-        }
-        var url = '/v1/masternode/ping/' + qs;
-        this.request.get(url, cb);
-    };
-    API.prototype.signMasternode = function (opts, cb) {
-        if (!cb) {
-            cb = opts;
-            opts = {};
-            log.warn('DEPRECATED WARN: signMasternode should receive 2 parameters.');
-        }
-        opts = opts || {};
-        if (!opts.coin) {
-            return cb(new Error('Invalid coin'));
-        }
-        if (opts.coin != 'vcl') {
-            return cb(new Error('coin is not supported'));
-        }
-        if (!opts.txid)
-            return cb(new Error('Not utxo id'));
-        if (typeof opts.vout == 'undefined')
-            return cb(new Error('Not utxo index'));
-        if (!opts.signPrivKey)
-            return cb(new Error('Not sign private key'));
-        if (!opts.pingHeight)
-            return cb(new Error('Not ping block height'));
-        if (!opts.pingHash)
-            return cb(new Error('Not ping blockhash'));
-        if (!opts.privKey)
-            return cb(new Error('Not masternode private key'));
-        if (!common_1.Utils.isPrivateKey(opts.privKey)) {
-            return cb(new Error('Invalid masternode private key'));
-        }
-        if (!opts.ip)
-            return cb(new Error('Not masternode ip'));
-        var ip = opts.ip.split(':');
-        var masternode = new masternode_1.Masternode(opts.txid, opts.vout, opts.signPrivKey, opts.pingHash, opts.privKey, ip[0], ip[1]);
-        return cb(null, masternode.singMasternode());
+    API.prototype.wyreWalletOrderReservation = function (data) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.request.post('/v1/service/wyre/walletOrderReservation', data, function (err, data) {
+                if (err)
+                    return reject(err);
+                return resolve(data);
+            });
+        });
     };
     API.PayProV2 = payproV2_1.PayProV2;
     API.PayPro = paypro_1.PayPro;
@@ -2011,8 +1962,8 @@ var API = (function (_super) {
     API.Utils = common_1.Utils;
     API.sjcl = sjcl_1.default;
     API.errors = Errors;
-    API.Masternode = masternode_1.Masternode;
-    API.Vircle = CWC.VircleLib;
+    API.Bitcore = CWC.BitcoreLib;
+    API.BitcoreCash = CWC.BitcoreLibCash;
     API.privateKeyEncryptionOpts = {
         iter: 10000
     };
