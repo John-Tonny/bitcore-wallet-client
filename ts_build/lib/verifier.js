@@ -115,7 +115,7 @@ var Verifier = (function () {
         $.checkArgument(txp.creatorId);
         $.checkState(credentials.isComplete());
         var creatorKeys = _.find(credentials.publicKeyRing, function (item) {
-            if (common_1.Utils.xPubToCopayerId(txp.coin || 'btc', item.xPubKey) === txp.creatorId)
+            if (common_1.Utils.xPubToCopayerId(txp.coin || 'vcl', item.xPubKey) === txp.creatorId)
                 return true;
         });
         if (!creatorKeys)
@@ -134,7 +134,12 @@ var Verifier = (function () {
         var hash;
         if (parseInt(txp.version) >= 3) {
             var t = common_1.Utils.buildTx(txp);
-            hash = t.uncheckedSerialize();
+            if (txp.coin == 'vcl') {
+                hash = t.uncheckedSerialize1();
+            }
+            else {
+                hash = t.uncheckedSerialize();
+            }
         }
         else {
             throw new Error('Transaction proposal not supported');
@@ -161,7 +166,7 @@ var Verifier = (function () {
         }
         if (amount != _.sumBy(payproOpts.instructions, 'amount'))
             return false;
-        if (txp.coin == 'btc' && toAddress != payproOpts.instructions[0].toAddress)
+        if ((txp.coin == 'btc' || txp.coin == 'vcl') && toAddress != payproOpts.instructions[0].toAddress)
             return false;
         if (txp.coin == 'bch' &&
             new BCHAddress(toAddress).toString() != new BCHAddress(payproOpts.instructions[0].toAddress).toString())

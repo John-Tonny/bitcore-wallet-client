@@ -9,7 +9,8 @@ var Bitcore = crypto_wallet_core_1.BitcoreLib;
 var Errors = require('./errors');
 var Bitcore_ = {
     btc: Bitcore,
-    bch: crypto_wallet_core_1.BitcoreLibCash
+    bch: crypto_wallet_core_1.BitcoreLibCash,
+    vcl: crypto_wallet_core_1.VircleLib,
 };
 var JSON_PAYMENT_REQUEST_CONTENT_TYPE = 'application/payment-request';
 var JSON_PAYMENT_VERIFY_CONTENT_TYPE = 'application/verify-payment';
@@ -151,7 +152,7 @@ var PayPro = (function () {
     PayPro.get = function (opts, cb) {
         $.checkArgument(opts && opts.url);
         opts.trustedKeys = opts.trustedKeys || dfltTrustedKeys;
-        var coin = opts.coin || 'btc';
+        var coin = opts.coin || 'vcl';
         var bitcore = Bitcore_[coin];
         var COIN = coin.toUpperCase();
         opts.headers = opts.headers || {
@@ -205,7 +206,7 @@ var PayPro = (function () {
         $.checkArgument(opts.rawTxUnsigned)
             .checkArgument(opts.url)
             .checkArgument(opts.rawTx);
-        var coin = opts.coin || 'btc';
+        var coin = opts.coin || 'vcl';
         var COIN = coin.toUpperCase();
         opts.network = opts.network || 'livenet';
         opts.method = 'POST';

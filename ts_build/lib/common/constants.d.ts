@@ -12,6 +12,8 @@ export declare const Constants: {
     };
     PATHS: {
         SINGLE_ADDRESS: string;
+        REQUEST_ELECTRUM_KEY: string;
+        REQUEST_SEGWIT_ELECTRUM_KEY: string;
         REQUEST_KEY: string;
         REQUEST_KEY_AUTH: string;
     };
@@ -69,6 +71,17 @@ export declare const Constants: {
             };
         };
         eth: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        vcl: {
             toSatoshis: number;
             full: {
                 maxDecimals: number;

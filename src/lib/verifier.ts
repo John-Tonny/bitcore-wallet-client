@@ -139,7 +139,7 @@ export class Verifier {
     $.checkState(credentials.isComplete());
 
     var creatorKeys = _.find(credentials.publicKeyRing, item => {
-      if (Utils.xPubToCopayerId(txp.coin || 'btc', item.xPubKey) === txp.creatorId) return true;
+      if (Utils.xPubToCopayerId(txp.coin || 'vcl', item.xPubKey) === txp.creatorId) return true;
     });
 
     if (!creatorKeys) return false;
@@ -160,7 +160,12 @@ export class Verifier {
     var hash;
     if (parseInt(txp.version) >= 3) {
       var t = Utils.buildTx(txp);
-      hash = t.uncheckedSerialize();
+      // john
+      if (txp.coin == 'vcl') {
+        hash = t.uncheckedSerialize1();      
+      } else {	
+        hash = t.uncheckedSerialize();
+      }
     } else {
       throw new Error('Transaction proposal not supported');
     }
@@ -189,7 +194,7 @@ export class Verifier {
 
     if (amount != _.sumBy(payproOpts.instructions, 'amount')) return false;
 
-    if (txp.coin == 'btc' && toAddress != payproOpts.instructions[0].toAddress) return false;
+    if ((txp.coin == 'btc' || txp.coin == 'vcl') && toAddress != payproOpts.instructions[0].toAddress) return false;
 
     // Workaround for cashaddr/legacy address problems...
     if (

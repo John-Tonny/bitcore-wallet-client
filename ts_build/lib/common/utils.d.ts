@@ -26,5 +26,6 @@ export declare class Utils {
     static verifyRequestPubKey(requestPubKey: any, signature: any, xPubKey: any): any;
     static formatAmount(satoshis: any, unit: any, opts?: any): any;
     static buildTx(txp: any): any;
+    static isPrivateKey(privKey: any): boolean;
 }
 //# sourceMappingURL=utils.d.ts.map

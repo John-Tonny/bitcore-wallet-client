@@ -47,12 +47,14 @@ var sha256 = Bitcore.crypto.Hash.sha256;
 var BN = Bitcore.crypto.BN;
 var Bitcore_ = {
     btc: Bitcore,
-    bch: require('crypto-wallet-core').BitcoreLibCash
+    bch: require('crypto-wallet-core').BitcoreLibCash,
+    vcl: require('crypto-wallet-core').VircleLib
 };
 var MAX_FEE_PER_KB = {
     btc: 10000 * 1000,
     bch: 10000 * 1000,
     eth: 1000000000000,
+    vcl: 10000 * 1000,
     xrp: 1000000000000
 };
 var NetworkMap;

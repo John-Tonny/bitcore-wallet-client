@@ -38,6 +38,16 @@ var Key = (function () {
             });
             return x;
         };
+        this.getPrivateKey = function (password, rootPath, path) {
+            var privs = [];
+            var derived = {};
+            var derived = this.derive(password, rootPath);
+            var xpriv = new Bitcore.HDPrivateKey(derived);
+            if (!derived[path]) {
+                return xpriv.deriveChild(path).privateKey;
+            }
+            return null;
+        };
         this.isPrivKeyEncrypted = function () {
             return !!this.xPrivKeyEncrypted && !this.xPrivKey;
         };
@@ -131,7 +141,14 @@ var Key = (function () {
             $.shouldBeUndefined(opts.useLegacyPurpose);
             var path = this.getBaseAddressDerivationPath(opts);
             var xPrivKey = this.derive(password, path);
-            var requestPrivKey = this.derive(password, common_1.Constants.PATHS.REQUEST_KEY).privateKey.toString();
+            var requestKey = common_1.Constants.PATHS.REQUEST_KEY;
+            if (this.useforElectrum) {
+                requestKey = common_1.Constants.PATHS.REQUEST_ELECTRUM_KEY;
+                if (this.useSegwit) {
+                    requestKey = common_1.Constants.PATHS.REQUEST_SEGWIT_ELECTRUM_KEY;
+                }
+            }
+            var requestPrivKey = this.derive(password, requestKey).privateKey.toString();
             if (opts.network == 'testnet') {
                 var x = xPrivKey.toObject();
                 x.network = 'testnet';
@@ -215,6 +232,9 @@ var Key = (function () {
         };
         this.version = 1;
         this.use0forBCH = false;
+        this.useforElectrum = false;
+        this.useSegwit = false;
+        this.useMulti = false;
         this.use44forMultisig = false;
         this.compliantDerivation = true;
         this.id = Uuid.v4();
@@ -252,11 +272,23 @@ var Key = (function () {
         else if (opts.coin == 'eth') {
             coinCode = '60';
         }
+        else if (opts.coin == 'vcl') {
+            coinCode = '57';
+        }
         else if (opts.coin == 'xrp') {
             coinCode = '144';
         }
         else {
             throw new Error('unknown coin: ' + opts.coin);
+        }
+        if (this.useforElectrum) {
+            if (this.useSegwit) {
+                if (opts.n == 1) {
+                    return "m/0'";
+                }
+                return "m/1'";
+            }
+            return 'm';
         }
         return 'm/' + purpose + "'/" + coinCode + "'/" + opts.account + "'";
     };
@@ -270,6 +302,9 @@ var Key = (function () {
         'compliantDerivation',
         'BIP45',
         'use0forBCH',
+        'useforElectrum',
+        'useSegwit',
+        'useMulti',
         'use44forMultisig',
         'version',
         'id'
@@ -289,6 +324,9 @@ var Key = (function () {
         x.mnemonic = m.phrase;
         x.mnemonicHasPassphrase = !!opts.passphrase;
         x.use0forBCH = opts.useLegacyCoinType;
+        x.useforElectrum = opts.useLegacyElectrumCoinType;
+        x.useSegwit = opts.userSegwit;
+        x.useMulti = opts.useMulti;
         x.use44forMultisig = opts.useLegacyPurpose;
         x.compliantDerivation = !opts.nonCompliantDerivation;
         return x;
@@ -298,14 +336,17 @@ var Key = (function () {
         if (opts)
             $.shouldBeObject(opts);
         opts = opts || {};
-        var m = new Mnemonic(words);
+        var m = new Mnemonic(words, null, opts.useMulti);
         var x = new Key();
-        var xpriv = m.toHDPrivateKey(opts.passphrase, NETWORK);
+        var xpriv = m.toHDPrivateKey(opts.passphrase, NETWORK, opts.useMulti);
         x.xPrivKey = xpriv.toString();
         x.fingerPrint = xpriv.fingerPrint.toString('hex');
         x.mnemonic = words;
         x.mnemonicHasPassphrase = !!opts.passphrase;
         x.use0forBCH = opts.useLegacyCoinType;
+        x.useforElectrum = m.useElectrum;
+        x.useSegwit = m.useSegwit;
+        x.useMulti = opts.useMulti;
         x.use44forMultisig = opts.useLegacyPurpose;
         x.compliantDerivation = !opts.nonCompliantDerivation;
         return x;
@@ -327,6 +368,8 @@ var Key = (function () {
         x.mnemonicHasPassphrase = null;
         x.use44forMultisig = opts.useLegacyPurpose;
         x.use0forBCH = opts.useLegacyCoinType;
+        x.useforElectrum = opts.useLegacyElectrumCoinType;
+        x.useSegwit = opts.useNativeSegwit;
         x.compliantDerivation = !opts.nonCompliantDerivation;
         return x;
     };

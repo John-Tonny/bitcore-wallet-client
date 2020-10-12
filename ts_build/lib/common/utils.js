@@ -30,7 +30,8 @@ var Bitcore_ = {
     btc: Bitcore,
     bch: crypto_wallet_core_1.BitcoreLibCash,
     eth: Bitcore,
-    xrp: Bitcore
+    xrp: Bitcore,
+    vcl: crypto_wallet_core_1.VircleLib
 };
 var PrivateKey = Bitcore.PrivateKey;
 var PublicKey = Bitcore.PublicKey;
@@ -146,7 +147,7 @@ var Utils = (function () {
     };
     Utils.deriveAddress = function (scriptType, publicKeyRing, path, m, network, coin) {
         $.checkArgument(_.includes(_.values(constants_1.Constants.SCRIPT_TYPES), scriptType));
-        coin = coin || 'btc';
+        coin = coin || 'vcl';
         var chain = this.getChain(coin).toLowerCase();
         var bitcore = Bitcore_[chain];
         var publicKeys = _.map(publicKeyRing, function (item) {
@@ -185,7 +186,7 @@ var Utils = (function () {
     };
     Utils.xPubToCopayerId = function (coin, xpub) {
         var chain = this.getChain(coin).toLowerCase();
-        var str = chain == 'btc' ? xpub : chain + xpub;
+        var str = chain == 'vcl' ? xpub : chain + xpub;
         var hash = sjcl.hash.sha256.hash(str);
         return sjcl.codec.hex.fromBits(hash);
     };
@@ -229,7 +230,7 @@ var Utils = (function () {
         return addSeparators(amount, opts.thousandsSeparator || ',', opts.decimalSeparator || '.', u[precision].minDecimals);
     };
     Utils.buildTx = function (txp) {
-        var coin = txp.coin || 'btc';
+        var coin = txp.coin || 'vcl';
         if (constants_1.Constants.UTXO_COINS.includes(coin)) {
             var bitcore = Bitcore_[coin];
             var t = new bitcore.Transaction();
@@ -314,6 +315,15 @@ var Utils = (function () {
                 unsignedTxs_1.push(rawTx);
             }
             return { uncheckedSerialize: function () { return unsignedTxs_1; } };
+        }
+    };
+    Utils.isPrivateKey = function (privKey) {
+        try {
+            var privkey = new PrivateKey(privKey);
+            return true;
+        }
+        catch (e) {
+            return false;
         }
     };
     return Utils;

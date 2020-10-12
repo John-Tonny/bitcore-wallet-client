@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import { Utils } from './common';
 import { Credentials } from './credentials';
 import { Key } from './key';
+import { Masternode } from './masternode';
 import { PayPro } from './paypro';
 import { PayProV2 } from './payproV2';
 import { Verifier } from './verifier';
@@ -30,8 +31,10 @@ export declare class API extends EventEmitter {
     static Utils: typeof Utils;
     static sjcl: any;
     static errors: any;
+    static Masternode: typeof Masternode;
     static Bitcore: any;
     static BitcoreCash: any;
+    static Vircle: any;
     constructor(opts?: any);
     static privateKeyEncryptionOpts: {
         iter: number;
@@ -146,5 +149,12 @@ export declare class API extends EventEmitter {
     simplexGetEvents(data: any): Promise<any>;
     wyreWalletOrderQuotation(data: any): Promise<any>;
     wyreWalletOrderReservation(data: any): Promise<any>;
+    getMasternodeCollateral(opts: any, cb: any): any;
+    removeMasternodes(opts: any, cb: any): any;
+    getMasternodes(opts: any, cb: any): any;
+    getMasternodeStatus(opts: any, cb: any): any;
+    broadcastMasternode(opts: any, cb: any): any;
+    getMasternodePing(opts: any, cb: any): any;
+    signMasternode(opts: any, cb: any): any;
 }
 //# sourceMappingURL=api.d.ts.map

@@ -104,6 +104,9 @@ var Credentials = (function () {
             else if (_this.coin == 'eth') {
                 coin = '60';
             }
+            else if (_this.coin == 'vcl') {
+                coin = '57';
+            }
             else if (_this.coin == 'xrp') {
                 coin = '144';
             }
@@ -131,7 +134,7 @@ var Credentials = (function () {
         if (x.externalSource) {
             throw new Error('External Wallets are no longer supported');
         }
-        x.coin = x.coin || 'btc';
+        x.coin = x.coin || 'vcl';
         x.addressType = x.addressType || common_1.Constants.SCRIPT_TYPES.P2SH;
         x.account = x.account || 0;
         $.checkState(x.xPrivKey || x.xPubKey || x.xPrivKeyEncrypted, 'invalid input');
@@ -183,7 +186,7 @@ var Credentials = (function () {
     Credentials.prototype.isComplete = function () {
         if (!this.m || !this.n)
             return false;
-        if ((this.coin === 'btc' || this.coin === 'bch') && (!this.publicKeyRing || this.publicKeyRing.length != this.n))
+        if ((this.coin === 'btc' || this.coin === 'bch' || this.coin == 'vcl') && (!this.publicKeyRing || this.publicKeyRing.length != this.n))
             return false;
         return true;
     };
