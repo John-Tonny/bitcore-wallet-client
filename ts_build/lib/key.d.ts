@@ -16,6 +16,7 @@ export declare class Key {
     static fromObj: (obj: any) => any;
     toObj: () => {};
     getPrivateKey: (password: any, rootPath: any, path: any) => any;
+    isValidAddress: (password: any, rootPath: any, coin: any, queryAddress: any, start: any, stop: any) => boolean;
     isPrivKeyEncrypted: () => boolean;
     checkPassword: (password: any) => boolean;
     get: (password: any) => any;
