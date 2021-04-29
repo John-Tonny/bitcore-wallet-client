@@ -2003,6 +2003,73 @@ var API = (function (_super) {
         var masternode = new masternode_1.Masternode(opts.txid, opts.vout, opts.signPrivKey, opts.pingHash, opts.privKey, ip[0], ip[1]);
         return cb(null, masternode.singMasternode());
     };
+    API.prototype.isValidAddress = function (opts, cb) {
+        if (!cb) {
+            cb = opts;
+            opts = {};
+            log.warn('DEPRECATED WARN: isValidAddress should receive 2 parameters.');
+        }
+        opts = opts || {};
+        var coin = opts.coin || 'vcl';
+        var network = opts.network || 'livenet';
+        if (!opts.address)
+            return cb(new Error('Not address'));
+        if (CWC.Validation.validateAddress(coin, network, opts.address)) {
+            return cb(null, true);
+        }
+        return cb(new Error('Invalid address'), false);
+    };
+    API.prototype.createReward = function (opts, cb) {
+        var _this = this;
+        async.waterfall([
+            function (next) {
+                _this.openWallet(opts, function (err, walletStatus) {
+                    if (err) {
+                        return next(new Error('open wallet error!'), err);
+                    }
+                    return next(null, walletStatus);
+                });
+            },
+            function (walletStatus, next) {
+                if (walletStatus.wallet.status != 'complete') {
+                    return next(new Error('wallet no complete!'), walletStatus);
+                }
+                _this.createTxProposal(opts, function (err, createTxp) {
+                    if (err) {
+                        return next(new Error('create TxProposal error!'), err);
+                    }
+                    return next(null, createTxp);
+                }, '');
+            },
+            function (createTxp, next) {
+                _this.publishTxProposal({ txp: createTxp }, function (err, publishTxp) {
+                    if (err) {
+                        return next(new Error('publish TxProposal error!'), err);
+                    }
+                    return next(null, publishTxp);
+                });
+            },
+            function (publishTxp, next) {
+                var signatures = opts.key.sign(_this.getRootPath(), publishTxp);
+                _this.pushSignatures(publishTxp, signatures, function (err, rawHex, paypro) {
+                    if (err) {
+                        return next(new Error('push Signatures error!'), err);
+                    }
+                    return next(null, rawHex);
+                }, '');
+            },
+            function (rawHex, next) {
+                _this.broadcastTxProposal(rawHex, function (err, zz, memo) {
+                    if (err) {
+                        return next(new Error('broadcast TxProposal error!'), err);
+                    }
+                    return cb(null, zz.txid);
+                });
+            }
+        ], function (err, errMsg) {
+            cb(errMsg, null);
+        });
+    };
     API.PayProV2 = payproV2_1.PayProV2;
     API.PayPro = paypro_1.PayPro;
     API.Key = key_1.Key;

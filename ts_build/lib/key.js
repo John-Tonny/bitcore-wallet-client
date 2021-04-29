@@ -38,13 +38,32 @@ var Key = (function () {
             });
             return x;
         };
-        this.getPrivateKey = function (password, rootPath, path) {
-            var privs = [];
+        this.getPrivateKey = function (password, rootPath, path, coin) {
             var derived = {};
-            var derived = this.derive(password, rootPath);
+            coin = coin || 'vcl';
+            var derived = this.derive(password, rootPath, coin);
             var xpriv = new Bitcore.HDPrivateKey(derived);
             if (!derived[path]) {
                 return xpriv.deriveChild(path).privateKey;
+            }
+            return null;
+        };
+        this.getPrivateKeyofWif = function (password, rootPath, path, coin, network) {
+            var derived = {};
+            coin = coin || 'vcl';
+            network = network || NETWORK;
+            var derived = this.derive(password, rootPath, coin);
+            var xPrivKey = new Bitcore.HDPrivateKey(derived);
+            if (network == 'testnet') {
+                var x = derived.toObject();
+                x.network = 'testnet';
+                delete x.xprivkey;
+                delete x.checksum;
+                x.privateKey = _.padStart(x.privateKey, 64, '0');
+                xPrivKey = new Bitcore.HDPrivateKey(x);
+            }
+            if (!derived[path]) {
+                return xPrivKey.deriveChild(path).privateKey.toWIF();
             }
             return null;
         };
@@ -58,7 +77,7 @@ var Key = (function () {
             stop = stop || (start + 100);
             var privKey;
             for (var i = start; i < stop; i++) {
-                var path = "m/0/" + i.toString();
+                var path = 'm/0/' + i.toString();
                 if (!derived[path]) {
                     privKey = xpriv.deriveChild(path).privateKey;
                     var address = privKey.publicKey.toAddress().toString();

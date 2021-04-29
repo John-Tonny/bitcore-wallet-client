@@ -15,7 +15,8 @@ export declare class Key {
     static fromExtendedPrivateKey: (xPriv: any, opts: any) => any;
     static fromObj: (obj: any) => any;
     toObj: () => {};
-    getPrivateKey: (password: any, rootPath: any, path: any) => any;
+    getPrivateKey: (password: any, rootPath: any, path: any, coin: any) => any;
+    getPrivateKeyofWif: (password: any, rootPath: any, path: any, coin: any, network: any) => any;
     isValidAddress: (password: any, rootPath: any, coin: any, queryAddress: any, start: any, stop: any) => boolean;
     isPrivKeyEncrypted: () => boolean;
     checkPassword: (password: any) => boolean;

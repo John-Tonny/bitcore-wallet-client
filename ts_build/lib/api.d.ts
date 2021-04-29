@@ -143,5 +143,7 @@ export declare class API extends EventEmitter {
     broadcastMasternode(opts: any, cb: any): any;
     getMasternodePing(opts: any, cb: any): any;
     signMasternode(opts: any, cb: any): any;
+    isValidAddress(opts: any, cb: any): any;
+    createReward(opts: any, cb: any): void;
 }
 //# sourceMappingURL=api.d.ts.map
