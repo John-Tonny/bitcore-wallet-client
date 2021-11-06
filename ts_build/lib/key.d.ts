@@ -33,5 +33,6 @@ export declare class Key {
         requestPrivKey: any;
     };
     sign: (rootPath: any, txp: any, password: any, cb: any) => any;
+    signAtomicSwap: (privKey: any, txp: any, cb: any) => any[];
 }
 //# sourceMappingURL=key.d.ts.map

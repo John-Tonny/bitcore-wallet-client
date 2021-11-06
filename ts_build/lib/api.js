@@ -46,6 +46,8 @@ var Bitcore_ = {
 var Mnemonic = require('bitcore-mnemonic');
 var url = require('url');
 var querystring = require('querystring');
+var JSUtil = Bitcore.util.js;
+var AuditContract = Bitcore.atomicswap.AuditContract;
 var log = require('./log');
 var Errors = require('./errors');
 var BASE_URL = 'http://localhost:3232/bws/api';
@@ -903,12 +905,143 @@ var API = (function (_super) {
             return cb(null, txp);
         });
     };
+    API.prototype.createAtomicswapRedeemTxProposal = function (opts, cb, baseUrl) {
+        var _this = this;
+        $.checkState(this.credentials && this.credentials.isComplete());
+        $.checkState(this.credentials.sharedEncryptingKey);
+        $.checkArgument(opts);
+        $.checkArgument(opts.atomicswap.contract);
+        var cnt = AuditContract(opts.atomicswap.contract);
+        if (!cnt.isAtomicSwap) {
+            cb(new Errors('atomicswap contract is invalid'));
+        }
+        var curTime = Math.round(new Date().getTime() / 1000);
+        var lockTime = cnt.lockTime;
+        if (lockTime > curTime) {
+            cb(new Errors('The lock time has not expired'));
+        }
+        $.checkArgument(opts.atomicswap.secret);
+        if (!JSUtil.isHexa(opts.atomicswap.secret) && opts.atomicswap.secret.length != 64) {
+            cb(new Errors('atomicswap secret is invalid'));
+        }
+        opts.atomicswap.redeem = true;
+        if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+            opts.signingMethod = 'schnorr';
+        }
+        var args = this._getCreateTxProposalArgs(opts);
+        baseUrl = baseUrl || '/v3/redeemtxproposals/';
+        this.request.post(baseUrl, args, function (err, txp) {
+            if (err)
+                return cb(err);
+            _this._processTxps(txp);
+            if (!verifier_1.Verifier.checkProposalCreation(args, txp, _this.credentials.sharedEncryptingKey)) {
+                return cb(new Errors.SERVER_COMPROMISED());
+            }
+            return cb(null, txp);
+        });
+    };
+    API.prototype.createAtomicswapRefundTxProposal = function (opts, cb, baseUrl) {
+        var _this = this;
+        $.checkState(this.credentials && this.credentials.isComplete());
+        $.checkState(this.credentials.sharedEncryptingKey);
+        $.checkArgument(opts);
+        $.checkArgument(opts.atomicswap.contract);
+        var cnt = AuditContract(opts.atomicswap.contract);
+        if (!cnt.isAtomicSwap) {
+            cb(new Errors('atomicswap contract is invalid'));
+        }
+        opts.atomicswap.redeem = false;
+        var curTime = Math.round(new Date().getTime() / 1000);
+        var lockTime = cnt.lockTime;
+        if (lockTime > curTime) {
+            cb(new Errors('The lock time has not expired'));
+        }
+        if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+            opts.signingMethod = 'schnorr';
+        }
+        var args = this._getCreateTxProposalArgs(opts);
+        baseUrl = baseUrl || '/v3/redeemtxproposals/';
+        this.request.post(baseUrl, args, function (err, txp) {
+            if (err)
+                return cb(err);
+            _this._processTxps(txp);
+            if (!verifier_1.Verifier.checkProposalCreation(args, txp, _this.credentials.sharedEncryptingKey)) {
+                return cb(new Errors.SERVER_COMPROMISED());
+            }
+            return cb(null, txp);
+        });
+    };
+    API.prototype.createAtomicSwapInitiateTxProposal = function (opts, cb, baseUrl) {
+        var _this = this;
+        $.checkState(this.credentials && this.credentials.isComplete());
+        $.checkState(this.credentials.sharedEncryptingKey);
+        $.checkArgument(opts);
+        $.checkArgument(opts.atomicswap.secretHash);
+        if (!JSUtil.isHexa(opts.atomicswap.secretHash) && opts.atomicswap.secretHash.length != 64) {
+            cb(new Errors('atomicswap secretHash is invalid'));
+        }
+        opts.atomicswap.initiate = true;
+        if (opts.outputs && opts.outputs.length != 1) {
+            cb(new Errors('The number of atomicswap outputs must be one'));
+        }
+        if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+            opts.signingMethod = 'schnorr';
+        }
+        var args = this._getCreateTxProposalArgs(opts);
+        baseUrl = baseUrl || '/v3/atomicswaptxproposals/';
+        this.request.post(baseUrl, args, function (err, txp) {
+            if (err)
+                return cb(err);
+            _this._processTxps(txp);
+            if (!verifier_1.Verifier.checkProposalCreation(args, txp, _this.credentials.sharedEncryptingKey)) {
+                return cb(new Errors.SERVER_COMPROMISED());
+            }
+            return cb(null, txp);
+        });
+    };
+    API.prototype.createAtomicSwapParticipateTxProposal = function (opts, cb, baseUrl) {
+        var _this = this;
+        $.checkState(this.credentials && this.credentials.isComplete());
+        $.checkState(this.credentials.sharedEncryptingKey);
+        $.checkArgument(opts);
+        $.checkArgument(opts.atomicswap.secretHash);
+        if (!JSUtil.isHexa(opts.atomicswap.secretHash) && opts.atomicswap.secretHash.length != 64) {
+            cb(new Errors('atomicswap secretHash is invalid'));
+        }
+        opts.atomicswap.initiate = false;
+        if (opts.outputs && opts.outputs.length != 1) {
+            cb(new Errors('The number of atomicswap outputs must be one'));
+        }
+        if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+            opts.signingMethod = 'schnorr';
+        }
+        var args = this._getCreateTxProposalArgs(opts);
+        baseUrl = baseUrl || '/v3/atomicswaptxproposals/';
+        this.request.post(baseUrl, args, function (err, txp) {
+            if (err)
+                return cb(err);
+            _this._processTxps(txp);
+            if (!verifier_1.Verifier.checkProposalCreation(args, txp, _this.credentials.sharedEncryptingKey)) {
+                return cb(new Errors.SERVER_COMPROMISED());
+            }
+            return cb(null, txp);
+        });
+    };
     API.prototype.publishTxProposal = function (opts, cb) {
         var _this = this;
         $.checkState(this.credentials && this.credentials.isComplete());
         $.checkArgument(opts).checkArgument(opts.txp);
         $.checkState(parseInt(opts.txp.version) >= 3);
         var t = common_1.Utils.buildTx(opts.txp);
+        if (opts.txp.atomicswap && opts.txp.atomicswap.isAtomicSwap && opts.txp.atomicswap.redeem != undefined) {
+            t.inputs[0].output.setScript(opts.txp.atomicswap.contract);
+            if (!opts.txp.atomicswap.redeem) {
+                t.lockUntilDate(opts.txp.atomicswap.lockTime);
+            }
+            else {
+                t.nLockTime = opts.txp.atomicswap.lockTime;
+            }
+        }
         var hash = t.uncheckedSerialize1();
         var args = {
             proposalSignature: common_1.Utils.signMessage(hash, this.credentials.requestPrivKey)
@@ -950,6 +1083,8 @@ var API = (function (_super) {
             args.push('limit=' + opts.limit);
         if (opts.reverse)
             args.push('reverse=1');
+        if (opts.address)
+            args.push('address=' + opts.address);
         var qs = '';
         if (args.length > 0) {
             qs = '?' + args.join('&');
@@ -1034,6 +1169,48 @@ var API = (function (_super) {
             });
         });
     };
+    API.prototype.getAtomicSwapTxProposals = function (opts, cb) {
+        var _this = this;
+        $.checkState(this.credentials && this.credentials.isComplete());
+        this.request.get('/v2/atomicswaptxproposals/', function (err, txps) {
+            if (err)
+                return cb(err);
+            _this._processTxps(txps);
+            async.every(txps, function (txp, acb) {
+                if (opts.doNotVerify)
+                    return acb(true);
+                _this.getPayProV2(txp)
+                    .then(function (paypro) {
+                    var isLegit = verifier_1.Verifier.checkTxProposal(_this.credentials, txp, {
+                        paypro: paypro
+                    });
+                    return acb(isLegit);
+                })
+                    .catch(function (err) {
+                    return acb(err);
+                });
+            }, function (isLegit) {
+                if (!isLegit)
+                    return cb(new Errors.SERVER_COMPROMISED());
+                var result;
+                if (opts.forAirGapped) {
+                    result = {
+                        txps: JSON.parse(JSON.stringify(txps)),
+                        encryptedPkr: opts.doNotEncryptPkr
+                            ? null
+                            : common_1.Utils.encryptMessage(JSON.stringify(_this.credentials.publicKeyRing), _this.credentials.personalEncryptingKey),
+                        unencryptedPkr: opts.doNotEncryptPkr ? JSON.stringify(_this.credentials.publicKeyRing) : null,
+                        m: _this.credentials.m,
+                        n: _this.credentials.n
+                    };
+                }
+                else {
+                    result = txps;
+                }
+                return cb(null, result);
+            });
+        });
+    };
     API.prototype.getPayPro = function (txp, cb) {
         if (!txp.payProUrl || this.doNotVerifyPayPro)
             return cb();
@@ -1066,6 +1243,14 @@ var API = (function (_super) {
         if (lodash_1.default.isEmpty(signatures)) {
             return cb('No signatures to push. Sign the transaction with Key first');
         }
+        if (txp.atomicswap &&
+            txp.atomicswap.redeem &&
+            (!JSUtil.isHexa(txp.atomicswap.secret) ||
+                txp.atomicswap.secret.length != 64 ||
+                txp.atomicswapSecretHash !=
+                    Bitcore.crypto.Hash.sha256(Buffer.from(txp.atomicswap.secret, 'hex')).toString('hex'))) {
+            return cb('Invalid atomicswap secret');
+        }
         this.getPayProV2(txp)
             .then(function (paypro) {
             var isLegit = verifier_1.Verifier.checkTxProposal(_this.credentials, txp, {
@@ -1079,8 +1264,13 @@ var API = (function (_super) {
             }
             base = base || defaultBase;
             var url = base + txp.id + '/signatures/';
+            var atomicswapSecret;
+            if (txp.atomicswap && txp.atomicswap.secret) {
+                atomicswapSecret = txp.atomicswap.secret;
+            }
             var args = {
-                signatures: signatures
+                signatures: signatures,
+                atomicswapSecret: atomicswapSecret
             };
             _this.request.post(url, args, function (err, txp) {
                 if (err)
@@ -1933,6 +2123,8 @@ var API = (function (_super) {
         if (!opts.masternodeKey)
             return cb(new Error('Not masternode private key'));
         args.masternodeKey = opts.masternodeKey;
+        if (opts.jsonHeader)
+            args.jsonHeader = opts.jsonHeader;
         var url = '/v1/masternode/broadcast/';
         this.request.post(url, args, function (err, body) {
             if (err)
@@ -2019,6 +2211,32 @@ var API = (function (_super) {
         }
         return cb(new Error('Invalid address'), false);
     };
+    API.prototype.auditContract = function (opts, cb) {
+        if (!cb) {
+            cb = opts;
+            opts = {};
+            log.warn('DEPRECATED WARN: isValidAddress should receive 2 parameters.');
+        }
+        opts = opts || {};
+        var coin = opts.coin || 'vcl';
+        var network = opts.network || 'livenet';
+        if (!opts.contract)
+            return cb(new Error('Not contract'));
+        if (!JSUtil.isHexa(opts.contract)) {
+            cb(new Error('contract must be hex string'));
+        }
+        var cnt = AuditContract(opts.contract);
+        if (!cnt.isAtomicSwap) {
+            cb(new Error('atomicswap contract invalid'));
+        }
+        this.getMainAddresses({ coin: coin, network: network, address: cnt.recipientAddr }, function (err, addresses) {
+            if (err)
+                cb(err);
+            if (addresses && addresses.length > 0) {
+                cb(null, cnt);
+            }
+        });
+    };
     API.prototype.createReward = function (opts, cb) {
         var _this = this;
         async.waterfall([
@@ -2069,6 +2287,10 @@ var API = (function (_super) {
         ], function (err, errMsg) {
             cb(errMsg, null);
         });
+    };
+    API.prototype.decryMessage = function (msg, key, cb) {
+        var ret = common_1.Utils.decryptMessage(msg, key);
+        return cb(null, ret);
     };
     API.PayProV2 = payproV2_1.PayProV2;
     API.PayPro = paypro_1.PayPro;

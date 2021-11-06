@@ -71,11 +71,13 @@ var Verifier = (function () {
         for (var i = 0; i < txp.outputs.length; i++) {
             var o1 = txp.outputs[i];
             var o2 = args.outputs[i];
-            if (!strEqual(o1.toAddress, o2.toAddress))
-                return false;
-            if (!strEqual(o1.script, o2.script))
-                return false;
-            if (!args.sendMax) {
+            if (!txp.atomicswap || txp.atomicswap.isAtomicSwap) {
+                if (!strEqual(o1.toAddress, o2.toAddress))
+                    return false;
+                if (!strEqual(o1.script, o2.script))
+                    return false;
+            }
+            if (!args.sendMax && txp.atomicswap && !txp.atomicswap.isAtomicSwap) {
                 if (o1.amount != o2.amount)
                     return false;
             }
@@ -135,6 +137,15 @@ var Verifier = (function () {
         var hash;
         if (parseInt(txp.version) >= 3) {
             var t = common_1.Utils.buildTx(txp);
+            if (txp.atomicswap && txp.atomicswap.isAtomicSwap && txp.atomicswap.redeem != undefined) {
+                t.inputs[0].output.setScript(txp.atomicswap.contract);
+                if (!txp.atomicswap.redeem) {
+                    t.lockUntilDate(txp.atomicswap.lockTime);
+                }
+                else {
+                    t.nLockTime = txp.atomicswap.lockTime;
+                }
+            }
             hash = t.uncheckedSerialize1();
         }
         else {
@@ -143,8 +154,13 @@ var Verifier = (function () {
         log.debug('Regenerating & verifying tx proposal hash -> Hash: ', hash, ' Signature: ', txp.proposalSignature);
         if (!common_1.Utils.verifyMessage(hash, txp.proposalSignature, creatorSigningPubKey))
             return false;
-        if (common_1.Constants.UTXO_COINS.includes(txp.coin) && !this.checkAddress(credentials, txp.changeAddress))
-            return false;
+        if (common_1.Constants.UTXO_COINS.includes(txp.coin)) {
+            if (txp.changeAddress != undefined) {
+                if ((!txp.atomicswap || txp.atomicswap.isAtomicSwap) && !this.checkAddress(credentials, txp.changeAddress)) {
+                    return false;
+                }
+            }
+        }
         return true;
     };
     Verifier.checkPaypro = function (txp, payproOpts) {

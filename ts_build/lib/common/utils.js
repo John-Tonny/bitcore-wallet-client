@@ -230,6 +230,7 @@ var Utils = (function () {
         if (constants_1.Constants.UTXO_COINS.includes(coin)) {
             var bitcore = Bitcore_[coin];
             var t = new bitcore.Transaction();
+            t.setAtomicSwap(txp.atomicswap);
             if (txp.version >= 4) {
                 t.setVersion(2);
             }

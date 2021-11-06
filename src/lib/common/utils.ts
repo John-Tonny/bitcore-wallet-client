@@ -275,6 +275,8 @@ export class Utils {
 
       var t = new bitcore.Transaction();
 
+      t.setAtomicSwap(txp.atomicswap);
+
       if (txp.version >= 4) {
         t.setVersion(2);
       } else {

@@ -92,11 +92,16 @@ export declare class API extends EventEmitter {
     getCoinsForTx(opts: any, cb: any): void;
     _getCreateTxProposalArgs(opts: any): any;
     createTxProposal(opts: any, cb: any, baseUrl: any): void;
+    createAtomicswapRedeemTxProposal(opts: any, cb: any, baseUrl: any): void;
+    createAtomicswapRefundTxProposal(opts: any, cb: any, baseUrl: any): void;
+    createAtomicSwapInitiateTxProposal(opts: any, cb: any, baseUrl: any): void;
+    createAtomicSwapParticipateTxProposal(opts: any, cb: any, baseUrl: any): void;
     publishTxProposal(opts: any, cb: any): void;
     createAddress(opts: any, cb: any): any;
     getMainAddresses(opts: any, cb: any): void;
     getBalance(opts: any, cb: any): any;
     getTxProposals(opts: any, cb: any): void;
+    getAtomicSwapTxProposals(opts: any, cb: any): void;
     getPayPro(txp: any, cb: any): any;
     getPayProV2(txp: any): Promise<any>;
     pushSignatures(txp: any, signatures: any, cb: any, base: any): any;
@@ -144,6 +149,8 @@ export declare class API extends EventEmitter {
     getMasternodePing(opts: any, cb: any): any;
     signMasternode(opts: any, cb: any): any;
     isValidAddress(opts: any, cb: any): any;
+    auditContract(opts: any, cb: any): any;
     createReward(opts: any, cb: any): void;
+    decryMessage(msg: any, key: any, cb: any): any;
 }
 //# sourceMappingURL=api.d.ts.map

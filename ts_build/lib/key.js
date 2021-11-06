@@ -74,7 +74,7 @@ var Key = (function () {
             var derived = this.derive(password, rootPath, coin);
             var xpriv = new Bitcore.HDPrivateKey(derived);
             start = start || 0;
-            stop = stop || (start + 100);
+            stop = stop || start + 100;
             var privKey;
             for (var i = start; i < stop; i++) {
                 var path = 'm/0/' + i.toString();
@@ -233,6 +233,15 @@ var Key = (function () {
             var derived = this.derive(password, rootPath);
             var xpriv = new Bitcore.HDPrivateKey(derived);
             var t = common_1.Utils.buildTx(txp);
+            if (txp.atomicswap && txp.atomicswap.isAtomicSwap && txp.atomicswap.redeem != undefined) {
+                t.inputs[0].output.setScript(txp.atomicswap.contract);
+                if (!txp.atomicswap.redeem) {
+                    t.lockUntilDate(txp.atomicswap.lockTime);
+                }
+                else {
+                    t.nLockTime = txp.atomicswap.lockTime;
+                }
+            }
             if (common_1.Constants.UTXO_COINS.includes(txp.coin)) {
                 _.each(txp.inputs, function (i) {
                     $.checkState(i.path, 'Input derivation path not available (signing transaction)');
@@ -268,6 +277,22 @@ var Key = (function () {
                     signatures_1.push(signed);
                 }
                 return signatures_1;
+            }
+        };
+        this.signAtomicSwap = function (privKey, txp, cb) {
+            var t = common_1.Utils.buildTx(txp);
+            t.inputs[0].output.setScript(txp.contract);
+            t.lockUntilDate(txp.lockTime);
+            var privs = [];
+            if (common_1.Constants.UTXO_COINS.includes(txp.coin)) {
+                privs.push(new Bitcore.PrivateKey(privKey));
+                var signatures = _.map(privs, function (priv, i) {
+                    return t.getSignatures(priv, undefined, txp.signingMethod);
+                });
+                signatures = _.map(_.sortBy(_.flatten(signatures), 'inputIndex'), function (s) {
+                    return s.signature.toDER(txp.signingMethod).toString('hex');
+                });
+                return signatures;
             }
         };
         this.version = 1;
