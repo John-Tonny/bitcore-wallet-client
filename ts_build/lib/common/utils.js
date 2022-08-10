@@ -1,14 +1,11 @@
 'use strict';
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
 };
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
@@ -16,7 +13,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
     result["default"] = mod;
     return result;
-};
+}
 Object.defineProperty(exports, "__esModule", { value: true });
 var crypto_wallet_core_1 = require("crypto-wallet-core");
 var _ = __importStar(require("lodash"));
@@ -309,7 +306,7 @@ var Utils = (function () {
             var isERC20 = tokenAddress && !payProUrl;
             var chain = isERC20 ? 'ERC20' : this.getChain(coin);
             for (var index = 0; index < recipients.length; index++) {
-                var rawTx = crypto_wallet_core_1.Transactions.create(__assign(__assign(__assign({}, txp), recipients[index]), { tag: destinationTag ? Number(destinationTag) : undefined, chain: chain, nonce: Number(txp.nonce) + Number(index), recipients: [recipients[index]] }));
+                var rawTx = crypto_wallet_core_1.Transactions.create(__assign({}, txp, recipients[index], { tag: destinationTag ? Number(destinationTag) : undefined, chain: chain, nonce: Number(txp.nonce) + Number(index), recipients: [recipients[index]] }));
                 unsignedTxs_1.push(rawTx);
             }
             return { uncheckedSerialize: function () { return unsignedTxs_1; } };

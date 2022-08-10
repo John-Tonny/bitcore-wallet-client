@@ -37,4 +37,3 @@ export declare class Credentials {
     addPublicKeyRing(publicKeyRing: any): void;
     isComplete(): boolean;
 }
-//# sourceMappingURL=credentials.d.ts.map

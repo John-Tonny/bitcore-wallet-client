@@ -19,7 +19,7 @@ export declare class Utils {
     static deriveAddress(scriptType: any, publicKeyRing: any, path: any, m: any, network: any, coin: any): {
         address: any;
         path: any;
-        publicKeys: any[];
+        publicKeys: any;
     };
     static xPubToCopayerId(coin: any, xpub: any): any;
     static signRequestPubKey(requestPubKey: any, xPrivKey: any): any;
@@ -28,4 +28,3 @@ export declare class Utils {
     static buildTx(txp: any): any;
     static isPrivateKey(privKey: any): boolean;
 }
-//# sourceMappingURL=utils.d.ts.map

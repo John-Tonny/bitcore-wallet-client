@@ -1,7 +1,7 @@
 export declare enum NetworkMap {
     main = "livenet",
     test = "testnet",
-    regtest = "testnet"
+    regtest = "testnet",
 }
 export declare class PayProV2 {
     static options: {
@@ -17,24 +17,24 @@ export declare class PayProV2 {
         headers: object;
     }>;
     static getError(errMsg: string): Error;
-    static getPaymentOptions({ paymentUrl, unsafeBypassValidation }: {
+    static getPaymentOptions({paymentUrl, unsafeBypassValidation}: {
         paymentUrl: any;
         unsafeBypassValidation?: boolean;
     }): Promise<any>;
-    static selectPaymentOption({ paymentUrl, chain, currency, unsafeBypassValidation }: {
+    static selectPaymentOption({paymentUrl, chain, currency, unsafeBypassValidation}: {
         paymentUrl: any;
         chain: any;
         currency: any;
         unsafeBypassValidation?: boolean;
     }): Promise<any>;
-    static verifyUnsignedPayment({ paymentUrl, chain, currency, unsignedTransactions, unsafeBypassValidation }: {
+    static verifyUnsignedPayment({paymentUrl, chain, currency, unsignedTransactions, unsafeBypassValidation}: {
         paymentUrl: any;
         chain: any;
         currency: any;
         unsignedTransactions: any;
         unsafeBypassValidation?: boolean;
     }): Promise<any>;
-    static sendSignedPayment({ paymentUrl, chain, currency, signedTransactions, unsafeBypassValidation, bpPartner }: {
+    static sendSignedPayment({paymentUrl, chain, currency, signedTransactions, unsafeBypassValidation, bpPartner}: {
         paymentUrl: any;
         chain: any;
         currency: any;
@@ -45,4 +45,3 @@ export declare class PayProV2 {
     static verifyResponse(requestUrl: any, rawBody: any, headers: any, unsafeBypassValidation: any): Promise<any>;
     static processResponse(responseData: any): any;
 }
-//# sourceMappingURL=payproV2.d.ts.map

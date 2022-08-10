@@ -1,5 +1,3 @@
-/// <reference types="node" />
-import * as CWC from 'crypto-wallet-core';
 import { EventEmitter } from 'events';
 import { Utils } from './common';
 import { Credentials } from './credentials';
@@ -27,7 +25,7 @@ export declare class API extends EventEmitter {
     static PayPro: typeof PayPro;
     static Key: typeof Key;
     static Verifier: typeof Verifier;
-    static Core: typeof CWC;
+    static Core: any;
     static Utils: typeof Utils;
     static sjcl: any;
     static errors: any;
@@ -65,16 +63,13 @@ export declare class API extends EventEmitter {
         network: string;
     };
     static getRawTx(txp: any): any;
-    _getCurrentSignatures(txp: any): {
-        signatures: any;
-        xpub: any;
-    }[];
+    _getCurrentSignatures(txp: any): any;
     _addSignaturesToBitcoreTxBitcoin(txp: any, t: any, signatures: any, xpub: any): void;
     _addSignaturesToBitcoreTx(txp: any, t: any, signatures: any, xpub: any): void;
     _applyAllSignatures(txp: any, t: any): void;
     _doJoinWallet(walletId: any, walletPrivKey: any, xPubKey: any, requestPubKey: any, copayerName: any, opts: any, cb: any): void;
     isComplete(): any;
-    _extractPublicKeyRing(copayers: any): any[];
+    _extractPublicKeyRing(copayers: any): any;
     getFeeLevels(coin: any, network: any, cb: any): void;
     getVersion(cb: any): void;
     _checkKeyDerivation(): boolean;
@@ -153,4 +148,3 @@ export declare class API extends EventEmitter {
     createReward(opts: any, cb: any): void;
     decryMessage(msg: any, key: any, cb: any): any;
 }
-//# sourceMappingURL=api.d.ts.map

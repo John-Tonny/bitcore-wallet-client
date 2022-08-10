@@ -6,4 +6,3 @@ export declare class Verifier {
     static checkPaypro(txp: any, payproOpts: any): boolean;
     static checkTxProposal(credentials: any, txp: any, opts: any): boolean;
 }
-//# sourceMappingURL=verifier.d.ts.map

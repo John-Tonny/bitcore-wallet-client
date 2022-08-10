@@ -4,4 +4,3 @@ export declare const Defaults: {
     MAX_FEE_PER_KB: number;
     MAX_TX_FEE: number;
 };
-//# sourceMappingURL=defaults.d.ts.map

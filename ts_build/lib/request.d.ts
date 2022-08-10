@@ -23,4 +23,3 @@ export declare class Request {
     doLogin(cb: any): void;
     delete(url: any, cb: any): void;
 }
-//# sourceMappingURL=request.d.ts.map

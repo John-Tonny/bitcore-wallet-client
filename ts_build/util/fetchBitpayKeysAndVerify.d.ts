@@ -10,4 +10,3 @@ declare let eccPayload: any;
 declare let parsedEccPayload: any;
 declare let eccKeysHash: any;
 declare let keyRequests: any[];
-//# sourceMappingURL=fetchBitpayKeysAndVerify.d.ts.map

@@ -10,16 +10,15 @@ export declare class Masternode {
     port: number;
     static FIELDS: string[];
     constructor(txid: any, vout: any, signPrivKey: any, pingHash: any, privKey: any, addr: any, port: any);
-    serialize_input(): string;
-    hash_decode(): string;
+    serialize_input(): any;
+    hash_decode(): any;
     get_address(): string;
-    get_now_time(): string;
-    get_int64(value: any): string;
-    get_int32(value: any): string;
-    get_int16BE(value: any): string;
-    get_int16(value: any): string;
-    get_int8(value: any): string;
+    get_now_time(): any;
+    get_int64(value: any): any;
+    get_int32(value: any): any;
+    get_int16BE(value: any): any;
+    get_int16(value: any): any;
+    get_int8(value: any): any;
     get_varintNum(n: any): any;
     singMasternode: () => string;
 }
-//# sourceMappingURL=masternode.d.ts.map

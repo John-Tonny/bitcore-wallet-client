@@ -6,4 +6,3 @@ export declare class PayPro {
     static get(opts: any, cb: any): void;
     static send(opts: any, cb: any): void;
 }
-//# sourceMappingURL=paypro.d.ts.map
